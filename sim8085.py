@@ -58,10 +58,10 @@ class App():
                                 'RET', 'RC', 'RNC', 'RZ', 'RNZ', 'RP', 'RM', 'RPE', 'RPO',
                                 'RST',
                                 'PUSH', 'POP', 'XTHL', 'SPHL', 'PCHL', 'DI', 'EI', 'SIM', 'RIM', 'NOP', 'HLT'], 'ins', foreground='purple')
-        self.feditor.createtag(['A', 'PSW', 'B', 'C', 'D', 'E', 'H', 'L', 'SP', 'PC', 'M'], 'reg', foreground='green')
+        self.feditor.createtag(['A', 'PSW', 'B', 'C', 'D', 'E', 'H', 'L', 'SP', 'PC', 'M'], 'reg', foreground='blue')
         
-        self.fmemview = MemoryView(self.rootframe, background="#f0f5cb")
-        self.fmemview.place(x=10, y=self.btnc_size+20, width=self.fmemview.width, height=self.fmemview.height, anchor='nw')
+        self.fmemview = MemoryView(self.rootframe, background="black")
+        self.fmemview.place(relx=0, y=self.btnc_size+20, relwidth=0.4, relheight=0.4*(16/9), anchor='nw')
         
         self.celine = 1
 

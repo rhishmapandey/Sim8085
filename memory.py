@@ -3,41 +3,42 @@ from tooltip import CreateToolTip
 
 class MemoryView(Frame):
     def __init__(self, master=None, **kw) -> None:
-        self.memcellsize = 30
-        self.padoff = 4
-        self.pagevertical_size = 90
-        self.width = self.memcellsize*16 + self.padoff + self.pagevertical_size
-        self.height = self.memcellsize*17 + self.padoff
         Frame.__init__(self, master, kw)
+
+        self.fmemcells = Frame(self)
+        self.fmemcells.place(relx=0.1, rely=1.0/17, relwidth=0.9, relheight=1-1.0/17, anchor='nw')
         self.memorycells = []
         #memory page
         for i in range(16):
             for j in range(16):
-                cell = Label(self, text='00', font=('consolas', 15), highlightthickness=1, highlightbackground='grey')
-                cell.place(x=(i+1)*self.memcellsize+self.padoff+(self.pagevertical_size-self.memcellsize), y=(j+1)*self.memcellsize+self.padoff, width=self.memcellsize, height=self.memcellsize ,anchor='nw')
+                cell = Label(self.fmemcells, text='00', highlightthickness=1, highlightbackground='grey', font=('consolas', 12))
+                cell.place(relx=(i)*(1.0/16), rely=(j)*(1.0/16), relwidth=1.0/16, relheight=1.0/16 ,anchor='nw')
                 self.memorycells.append(cell)
 
         #horizontal offset is same
+        self.fhoff = Frame(self)
+        self.fhoff.place(relx=0.1, rely=0, relwidth=0.9, relheight=1.0/17, anchor='nw')
         self.pagehorizontal = []
         for i in range(16):
-            off = Label(self, text=f'{"%01x"%i}', font=('consolas', 15), highlightthickness=1, highlightbackground='grey', foreground='purple')
-            off.place(x=(i+1)*self.memcellsize+self.padoff+(self.pagevertical_size-self.memcellsize), y=0, width=self.memcellsize, height=self.memcellsize ,anchor='nw')
+            off = Label(self.fhoff, text=f'{"%01x"%i}', highlightthickness=1, highlightbackground='grey', foreground='purple', font=('consolas', 12))
+            off.place(relx=(i)*(1.0/16), rely=0, relwidth=1.0/16, relheight=1 ,anchor='nw')
             self.pagehorizontal.append(off)
 
         #vertical offset
+        self.fvoff = Frame(self)
+        self.fvoff.place(relx=0, rely=1.0/17, relwidth=0.1, relheight=1-1.0/17, anchor='nw')
         self.pagevertical = []
         self.currentpage = 0
         for i in range(16):
-            off = Label(self, text=f'{"0x"+"%03x"%i}', font=('consolas', 15), highlightthickness=1, highlightbackground='grey', foreground='purple')
-            off.place(x=0, y=(i+1)*self.memcellsize+self.padoff, width=self.pagevertical_size, height=self.memcellsize ,anchor='nw')
+            off = Label(self.fvoff, text=f'{"0x"+"%03x"%i}', highlightthickness=1, highlightbackground='grey', foreground='purple', font=('consolas', 12))
+            off.place(relx=0, rely=(i)*(1.0/16), relwidth=1, relheight=1.0/16 ,anchor='nw')
             self.pagevertical.append(off)
-
-        self.bpagelower = Button(self, text='<<', command=self.loadlower)
-        self.bpageupper = Button(self, text='>>', command=self.loadupper)
-        boffset = 10
-        bgap = self.pagevertical_size - self.memcellsize - boffset
-        self.bpagelower.place(x=boffset, y=0, width=self.memcellsize, height=self.memcellsize, anchor='nw')
-        self.bpageupper.place(x=bgap, y=0, width=self.memcellsize, height=self.memcellsize, anchor='nw')
+        self.fbtn = Frame(self)
+        self.fbtn.place(relx=0, rely=0, relwidth=0.1, relheight=1.0/17, anchor='nw')
+        self.bpagelower = Button(self.fbtn, text='<<', command=self.loadlower, font=('consolas', 12))
+        self.bpageupper = Button(self.fbtn, text='>>', command=self.loadupper, font=('consolas', 12))
+        self.bpagelower.place(relx=0, rely=0, relwidth=1.0/2.5, relheight=1, anchor='nw')
+        self.bpageupper.place(relx=1, rely=0, relwidth=1.0/2.5, relheight=1, anchor='ne')
         CreateToolTip(self.bpagelower, "get memory lower", 35, 35)
         CreateToolTip(self.bpageupper, "get memory upper", 35, 35)
         

@@ -12,8 +12,11 @@ class Editor(Text):
         self.insert(INSERT, 'HLT')
         self.tags = []
         self.bind('<<TextModified>>', self.textmodifiedcallback)
+        self.bind('<Tab>', self.tab)
         self.tlines = self.get('1.0', 'end').split('\n')
         self.tag_configure("breakpoint", background='red')
+        self.tag_configure("comment", foreground="brown")
+        self.tag_configure("label", foreground="green")
 
     def calculatetags(self, loffstart:int=0, loffend:int=None) -> None:
         up_str = f'{loffstart+1}.0'
@@ -23,12 +26,23 @@ class Editor(Text):
         
         for id, siders in self.tags:
             self.tag_remove(id, up_str, up_end)
+        self.tag_remove('comment', up_str, up_end)
+        self.tag_remove('label', up_str, up_end)
 
         lines = (self.get('1.0', 'end').split('\n'))
         lines = lines[loffstart:loffend]
         lc = loffstart
         for line in lines:
             lc += 1
+            #check label
+            ol = line.find(':')
+            if (ol != -1):
+                self.tag_add('label', f'{lc}.0' ,f'{lc}.{ol}')
+            #check comment
+            oc = line.find(';')
+            if (oc != -1):
+                self.tag_add('comment', f'{lc}.{oc}', f'{lc}.{0} lineend')
+                line = line[0:oc]
             line = line.upper()
             for t_id, t_idnstrs in self.tags:
                 for idnstr in t_idnstrs:
@@ -57,7 +71,7 @@ class Editor(Text):
     def _proxy(self, command, *args):
         cmd = (self._orig, command) + args
         result = self.tk.call(cmd)
-        if command in ("insert", "delete", "replace"):
+        if command in ("insert", "delete", "replace", "configure"):
             self.event_generate("<<TextModified>>")
         return result
 
@@ -67,6 +81,8 @@ class Editor(Text):
         clines = len(_tmp_lines)
         if (clines > len(self.tlines)):
             clines = len(self.tlines)
+            #self.calculatetags(len(_tmp_lines), clines)
+
         ul_start = 0
         ubool = False
         for i in range(clines):
@@ -85,3 +101,7 @@ class Editor(Text):
 
     def removebreakpoint(self) -> None:
         self.tag_remove('breakpoint', '1.0', 'end')
+    
+    def tab(self, event=None):
+        self.insert(INSERT, "  ")
+        return "break"
