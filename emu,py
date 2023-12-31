@@ -1,0 +1,468 @@
+from ctypes import *
+from enum import Enum
+
+_opcodes = ['MOV', 'MVI', 'STA', 'CALL', 'LXI', 'MVI', 'LDA', 'LDAX', 'STA', 'STAX', 'IN', 'OUT', 'LHLD', 'SHLD', 'XCHG',
+                                'ADD', 'ADI', 'SUB', 'SUI', 'INR', 'DCR', 'INX', 'DCX', 'ADC', 'ACI', 'SBB', 'SBI', 'DAD', 'DAA',
+                                'ANA', 'ANI', 'ORA', 'ORI', 'XRA', 'XRI', 'CMA', 'CMP', 'CPI', 'RLC', 'RAL', 'RRC', 'RAR', 'CMC', 'STC', 'CMA',
+                                'JMP', 'JC', 'JNC', 'JZ', 'JNZ', 'JP', 'JM', 'JPE', 'JPO',
+                                'CALL', 'CC', 'CNC', 'CZ', 'CNZ', 'CP', 'CM', 'CPE', 'CPO',
+                                'RET', 'RC', 'RNC', 'RZ', 'RNZ', 'RP', 'RM', 'RPE', 'RPO',
+                                'RST',
+                                'PUSH', 'POP', 'XTHL', 'SPHL', 'PCHL', 'DI', 'EI', 'SIM', 'RIM', 'NOP', 'HLT']
+
+_regs = ['A', 'B', 'C', 'D', 'E', 'H', 'L', 'M']
+_reg_misc = ['PSW', 'SP', 'PC']
+
+
+
+_inc_sbarg  = {'ACI' : 0xCE, 'ADI' : 0xC6, 'ANI' : 0xE6, 'CPI' : 0xFE, 'IN' : 0xDB, 'ORI': 0xF6, 'OUT' : 0xD3, 'SBI' : 0xDE, 'SUI' : 0xD6, 'XRI' : 0xEE}
+
+_inc_sdarg  = {'LDA' : 0x3A, 'LHLD' : 0x2A, 'SHLD' : 0x22, 'STA' : 0x32}
+
+
+_inc_srt1arg  = {'ADC' : 0x88, 'ADD' : 0x80, 'ANA' : 0xA0, 'CMP' : 0xB8, 'ORA' : 0xB0, 'SBB' : 0x98, 'SUB':0x90, 'XRA' : 0xA8}
+
+_inc_srt2arg  = {'DCR' : 0x05, 'INR' : 0x04}
+
+_inc_slarg  = {'CALL' : 0xCD, 'CC' : 0xDC, 'CM'  : 0xFC, 'CNC' : 0xD4, 'CNZ' : 0xC4, 'CP' : 0xF4, 'CPE' : 0xEC, 'CPO' : 0xE4, 'CZ' : 0xCC,
+               'JC' : 0xDA, 'JM' : 0xFA, 'JMP' : 0xC3, 'JNC' : 0xD2, 'JNZ' : 0xC2, 'JP' : 0xF2, 'JPE' : 0xEA, 'JPO' : 0xE2, 'JZ' : 0xCA}
+_inc_narg   = {'CMA' : 0x2F, 'CMC' : 0x3F, 'DDA' : 0x27, 'DI' : 0xF3, 'EI' : 0xFB, 'HLT' : 0x76, 'PHCL' : 0xE9, 'RAL' : 0x17, 'RAR' : 0x1F,
+                'RC' : 0xD8, 'RET' : 0xC9, 'RIM' : 0x20, 'RLC' : 0x07, 'RM' : 0xF8, 'RNC' : 0xD0, 'RNZ' : 0xC0, 'RP' : 0xF0, 'RPE' : 0xE8,
+                'RPO' : 0xE0, 'RRC' : 0x0F, 'RZ' : 0xC8, 'SIM' : 0x30, 'SPHL' : 0xF9, 'STC' : 0x37, 'XCHG' : 0xEB, 'XTHL' : 0xE3}
+_inc_srpt3arg = {'DAD' : 0x09, 'DCX' : 0x0B, 'INX' : 0x03}
+_inc_srpt3regs = ['B', 'D', 'H', 'SP']
+
+_inc_srpt4arg = {'POP' : 0xC1, 'PUSH' : 0xC5}
+_inc_srpt4regs = ['B', 'D', 'H', 'PSW']
+
+_inc_srpt5arg = {'LDAX' : 0x0A, 'STAX' : 0x02}
+_inc_srpt5regs = ['B', 'D']
+
+class LexTag(Enum):
+    REG      = 0
+    REG_MISC = 1
+    OPCODE   = 2
+    DBYTE    = 3
+    DSHORT   = 4
+    DSTRING  = 5
+    SCOMMA   = 6
+    SCOLON   = 7
+        
+#please for the sake of god remove comments and unnessary junk adios
+def misc_getele(line:str) -> list:
+    nws = line.split()
+    ret = []
+    if (nws == []):
+        return ret
+    for l in nws:
+        start = 0
+        for i in range(len(l)):
+            if (l[i] == ','):
+                if (start < i):
+                    ret.append(l[start:i])
+                ret.append(',')
+                start = i+1
+            elif (l[i] == ':'):
+                if (start < i):
+                    ret.append(l[start:i])
+                ret.append(':')
+                start = i+1
+        if (start < len(l)):
+            ret.append(l[start:i+1])
+    return ret      
+
+class emu8085:
+    def __init__(self) -> None:
+        self.memory = []
+        self.ploadaddress = c_ushort()
+        self.ploadaddress.value = 0x0800
+
+        self.A = c_ubyte()
+        self.F = c_ubyte()
+        self.B = c_ubyte()
+        self.C = c_ubyte()
+        self.D = c_ubyte()
+        self.E = c_ubyte()
+        self.H = c_ubyte()
+        self.L = c_ubyte()
+
+        self.SP = c_ushort()
+        self.PC = c_ushort()
+        for i in range(0xffff):
+            self.memory.append(c_ubyte())
+        self.reset()
+
+    def reset(self) -> None:
+        for cell in self.memory:
+            cell.value = 0x00
+        
+        self.A.value =0x00
+        self.F.value =0x00
+        self.B.value =0x00
+        self.C.value =0x00
+        self.D.value =0x00
+        self.E.value =0x00
+        self.H.value =0x00
+        self.L.value =0x00
+
+        self.SP = 0xffff
+        self.PC.value = self.ploadaddress.value
+
+def checkhex(v:str):
+    if (v[-1] != 'H' or not (len(v) == 3 or len(v) == 5)):
+        return False
+    try:
+        int(v[:-1], 16)
+        return True
+    except:
+        return False
+    
+def lexline(line:str):
+    l = line.upper()
+    if l.find(';') != -1:
+        l = line[0:l.find(';')]
+    ele = misc_getele(l)
+    lexana = []
+    if (ele == []):
+        return [], []
+    for l in ele:
+        if (l == ','):
+            lexana.append(LexTag.SCOMMA)
+        elif (l == ':'):
+            lexana.append(LexTag.SCOLON)
+        elif (l in _opcodes):
+            lexana.append(LexTag.OPCODE)
+        elif (l in _regs):
+            lexana.append(LexTag.REG)
+        elif (l in _reg_misc):
+            lexana.append(LexTag.REG_MISC)
+        elif checkhex(l):
+            if (len(l) == 3):
+                lexana.append(LexTag.DBYTE)
+            if (len(l) == 5):
+                lexana.append(LexTag.DSHORT)
+        else: 
+            lexana.append(LexTag.DSTRING)
+    return ele, lexana
+
+class assembler():
+    def __init__(self) -> None:
+        self.toresolvelabels = {}
+        self.ploadoff = 0x0800
+        self.cprogmemoff = 0x0000
+        self.dbgtoresolvelines = {}
+        self.labeloff = {}
+        self.pmemory = []
+
+        self.plsize = []
+
+        self.dbugasm = ""
+        self.dclines = []
+
+    def reset(self) -> None:
+        self.toresolvelabels = []
+        self.ploadoff = 0x0800
+        self.cprogmemoff = 0x0000
+        self.dbgtoresolvelines = {}
+        self.labeloff = {}
+        self.pmemory = []
+
+        self.plsize = []
+
+        self.dbugasm = ""
+        self.dclines = []
+    
+    def addtooresolvelabel(self, label:str, offset:int, cline:int=None) -> None:
+        if not label in self.toresolvelabels:
+            self.toresolvelabels[label] = []
+            self.toresolvelabels[label].append(offset)
+            if (cline != None):
+                self.dbgtoresolvelines[label] = []
+                self.dbgtoresolvelines[label].append(cline)            
+        else:
+            self.toresolvelabels[label].append(offset)
+            if (cline != None):
+                self.dbgtoresolvelines[label].append(cline)
+    
+    def addlabeloff(self, label:str, offset:int) -> bool:
+        if not label in self.labeloff:
+            self.labeloff[label] = offset
+            True
+        else: False
+    
+    def miscissinglebarg(self, lexa, off) -> (bool, str):
+        if (len(lexa) == (off+1)+1):
+            if lexa[off+1] == LexTag.DBYTE:
+                return True, ''
+            else : 
+                return False, 'invaid arg, was expecting a byte'
+        else:
+            if (len(lexa) > (off+1)+1):
+                return False, "was expecting fewer args!"
+            if (len(lexa) > (off+1)+1):
+                return False, "was expecting a byte arg!"
+
+    def miscissingledarg(self, lexa, off) -> (bool, str):
+        if (len(lexa) == (off+1)+1):
+            if lexa[off+1] == LexTag.DSHORT:
+                return True, ''
+            else : 
+                return False, 'invaid arg, was expecting a byte'
+        else:
+            if (len(lexa) > (off+1)+1):
+                return False, "was expecting fewer args!"
+            if (len(lexa) > (off+1)+1):
+                return False, "was expecting two bytes arg!"
+    
+    def miscissinglerarg(self, lexa, off) -> (bool, str):
+        if (len(lexa) == (off+1)+1):
+            if lexa[off+1] == LexTag.REG:
+                return True, ''
+            else : 
+                return False, 'invaid arg, was expecting a register!'
+        else:
+            if (len(lexa) > (off+1)+1):
+                return False, "was expecting fewer args!"
+            if (len(lexa) < (off+1)+1):
+                return False, "was expecting a reg arg"
+            
+    def miscissinglelab(self, lexa, off) -> (bool, str):
+        if (len(lexa) == (off+1)+1):
+            if lexa[off+1] == LexTag.DSTRING:
+                return True, ''
+            else : 
+                return False, 'invaid arg, was expecting a string!'
+        else:
+            if (len(lexa) > (off+1)+1):
+                return False, "was expecting fewer args!"
+            if (len(lexa) < (off+1)+1):
+                return False, "was expecting a string arg"
+            
+    def miscissinglerparg(self, lexa, s, off, regs=['B', 'D', 'H', 'SP']) -> (bool,str):
+        if (len(lexa) == (off+1)+1):
+            if s in regs:
+                return True, ''
+            else : 
+                return False, f'invaid arg, was expecting a registers {regs}!'
+        else:
+            if (len(lexa) > (off+1)+1):
+                return False, "was expecting fewer args!"
+            if (len(lexa) < (off+1)+1):
+                return False, "was expecting a rpargs"
+            
+    def miscisnoarg(self, lexa, off) -> (bool, str):
+        if (len(lexa) == (off+1)):
+                return True, ''
+        else : 
+            return False, 'invaid arg, was expecting no arg!'
+    
+        
+    def miscopcodertoff(self, bopcode, sval, inc=1):
+        match sval:
+            case 'B':
+                return bopcode
+            case 'C':
+                return bopcode + inc*1
+            case 'D':
+                return bopcode + inc*2
+            case 'E':
+                return bopcode + inc*3
+            case 'H':
+                return bopcode + inc*4
+            case 'L':
+                return bopcode + inc*5
+            case 'M':
+                return bopcode + inc*6
+            case 'A':
+                return bopcode + inc*7
+            case _:
+                Exception("error:: was expecting a string arg")
+                return 0x00
+    #demon
+    def miscopcoderpt3off(self, bopcode, sval, aregstr=['B', 'D', 'H', 'SP'], inc=16):
+                off = 0
+                for reg in aregstr:
+                    if reg == sval: break
+                    off +=1
+                return bopcode + off*inc
+    def resolvelabels(self) -> (bool, str):
+        # print(list(self.labeloff))
+        for label in list(self.labeloff):
+            if label in list(self.toresolvelabels):
+                #print(f'resolving label \'{label}\'')
+                memoff  = self.labeloff[label] + self.ploadoff 
+                adl = memoff >> 8
+                adu = memoff & 0x00ff
+                for toupoff in self.toresolvelabels[label]:
+                    self.pmemory[toupoff] = adu
+                    self.pmemory[toupoff+1] = adl
+                self.toresolvelabels.pop(label)
+        if (self.toresolvelabels != {}):
+            return False, 'error unresolved labels'
+        return True, ''
+    def assemble(self, lines) -> (bool, str):
+        self.dclines = lines
+        for line in lines:
+            sa, lexa = lexline(line)
+            oplen = 0
+            opcodes = []
+            inso = 0
+            if sa != []:
+                if LexTag.SCOLON in lexa:
+                    scount = 0
+                    for lex in lexa:
+                        if (lex == LexTag.SCOLON):
+                            scount += 1
+                    if (scount > 1):
+                        return False, "was expecting single colon"
+                    if lexa[0] == LexTag.DSTRING and lexa[1] == LexTag.SCOLON:
+                        self.addlabeloff(sa[0], self.cprogmemoff)
+                        if (len(lexa) == 2):
+                            inso = -1
+                        else:
+                            inso = 2
+                    else:
+                        return False, "was expecting string before colon"
+                if (inso != -1):
+                    if lexa[inso] != LexTag.OPCODE:
+                        return False, 'was expecting a opcode!'
+                    else:
+                        #type no arg
+                        ins = sa[inso]
+                        if ins in list(_inc_narg):
+                                b, m = self.miscisnoarg(lexa, inso)
+                                if (b == False):
+                                    return False, m
+                                opcodes.append(_inc_narg[ins])
+                                oplen = 1
+                        #type single byte arg
+                        elif ins in list(_inc_sbarg):
+                                b, m = self.miscissinglebarg(lexa, inso)
+                                if (b == False):
+                                    return False, m
+                                opcodes.append(_inc_sbarg[ins])
+                                opcodes.append(int(sa[inso+1][:-1], 16))
+                                oplen = 2
+                        #type single reg with offset relation t1 arg
+                        elif ins in list(_inc_srt1arg):
+                                b, m = self.miscissinglerarg(lexa, inso)
+                                if (b == False):
+                                    return False, m
+                                opcodes.append(self.miscopcodertoff(_inc_srt1arg[ins], sa[inso+1]))
+                                oplen = 1
+                        #type single reg with offset relation t2 arg
+                        elif ins in list(_inc_srt2arg):
+                                b, m = self.miscissinglerarg(lexa, inso)
+                                if (b == False):
+                                    return False, m
+                                opcodes.append(self.miscopcodertoff(_inc_srt2arg[ins], sa[inso+1], 8))
+                                oplen = 1
+                        #type single reg pair with offset relation t3 arg
+                        elif ins in list(_inc_srpt3arg):
+                                b, m = self.miscissinglerparg(lexa, sa[inso+1], inso, _inc_srpt3regs)
+                                if (b == False):
+                                    return False, m
+                                opcodes.append(self.miscopcoderpt3off(_inc_srpt3arg[ins], sa[inso+1], _inc_srpt3regs, 16))
+                                oplen = 1
+                        #type single reg pair with offset relation t4 arg
+                        elif ins in list(_inc_srpt4arg):
+                                b, m = self.miscissinglerparg(lexa, sa[inso+1], inso, _inc_srpt4regs)
+                                if (b == False):
+                                    return False, m
+                                opcodes.append(self.miscopcoderpt3off(_inc_srpt4arg[ins], sa[inso+1], _inc_srpt4regs, 16))
+                                oplen = 1
+                        #type single reg pair with offset relation t5 arg
+                        elif ins in list(_inc_srpt5arg):
+                                b, m = self.miscissinglerparg(lexa, sa[inso+1], inso, _inc_srpt5regs)
+                                if (b == False):
+                                    return False, m
+                                opcodes.append(self.miscopcoderpt3off(_inc_srpt5arg[ins], sa[inso+1], _inc_srpt5regs, 16))
+                                oplen = 1
+                        #type single lab arg
+                        elif ins in list(_inc_slarg):
+                                b, m = self.miscissinglelab(lexa, inso)
+                                if (b == False):
+                                    return False, m
+                                opcodes.append(_inc_slarg[ins])
+                                opcodes.append(0xCA)
+                                opcodes.append(0xCA)
+                                oplen = 3
+                                self.addtooresolvelabel(sa[inso+1], self.cprogmemoff+1)
+                        #type single double arg
+                        elif ins in list(_inc_sdarg):
+                                b, m = self.miscissingledarg(lexa, inso)
+                                if (b == False):
+                                    return False, m
+                                tm = int(sa[inso+1][:-1], 16)
+                                adl = tm >> 8
+                                adu = tm & 0x00ff
+                                opcodes.append(_inc_sdarg[ins])
+                                opcodes.append(adu)
+                                opcodes.append(adl)
+                                oplen = 3
+                        #some distinct hardcoded
+                        elif ins == 'LXI':
+                            if (len(sa) != (inso+1)+3):
+                                return False, 'not enough args'
+                            if (sa[inso+1] in _inc_srpt3regs and lexa[inso+2] == LexTag.SCOMMA and lexa[inso+3] == LexTag.DSHORT):
+                                tm = int(sa[inso+3][:-1], 16)
+                                adl = tm >> 8
+                                adu = tm & 0x00ff
+                                opcodes.append(self.miscopcoderpt3off(0x01, sa[inso+1], _inc_srpt3regs, 16))
+                                opcodes.append(adu)
+                                opcodes.append(adl)
+                                oplen = 3
+                            else:
+                                return False, 'invalid args'
+                        elif ins == 'MVI':
+                            if (len(sa) != (inso+1)+3):
+                                return False, 'not enough args'
+                            if (lexa[inso+1] == LexTag.REG and lexa[inso+2] == LexTag.SCOMMA and lexa[inso+3] == LexTag.DBYTE):
+                                d = int(sa[inso+3][:-1], 16)
+                                opcodes.append(self.miscopcodertoff(0x06, sa[inso+1], 8))
+                                opcodes.append(d)
+                                oplen = 2
+                            else:
+                                return False, 'invalid args'
+                        elif ins == 'MOV':
+                            if (len(sa) != (inso+1)+3):
+                                return False, 'not enough args'
+                            if (lexa[inso+1] == LexTag.REG and lexa[inso+2] == LexTag.SCOMMA and lexa[inso+3] == LexTag.REG and not (sa[inso+1]=='M' and sa[inso+3]=='M')):
+                                topcode =  self.miscopcodertoff(self.miscopcodertoff(0x40, sa[inso+3]), sa[inso+1], 8)
+                                opcodes.append(topcode)
+                                oplen = 1
+                            else:
+                                return False, 'invalid args'
+
+            self.plsize.append(oplen)
+            for opcode in opcodes:
+                self.pmemory.append(opcode)
+            self.cprogmemoff += oplen
+        bl, ml = self.resolvelabels()
+        if (bl == False):
+            return False, ml
+        return True, "success!"
+    
+    def generateasmdump(self):
+        memoff = self.ploadoff
+        poff = 0
+        loff = 0
+        for lc in self.plsize:
+            self.dbugasm += f'{"%04x"%(memoff+poff)}      '.upper()
+            lsize = lc
+            toline = ''
+            for i in range(lsize):
+                toline += (f'{"%02x"%self.pmemory[poff+i]} '.upper())
+            self.dbugasm += "{:<10}".format(toline)
+            self.dbugasm += f'    <==> <{lsize} bytes> \'{self.dclines[loff]}\'\n'
+            loff += 1
+            poff += lsize
+
+# a = assembler()
+# c, d = a.assemble([';simple program in one shot!', 'Ree:MOV A, A', 'INR M', 'ACI 00H', 'ADI 01H', 'CALL L2', 'CC L2', 'ADC H', 'L2:', 'LDA 4000H','HLT'])
+# print(c, d)
+# if (c== True):
+#     # print(a.toresolvelabels)
+#     # print(a.labeloff)
+#     a.generateasmdump()
+#     print(a.dbugasm)
