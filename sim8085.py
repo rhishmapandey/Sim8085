@@ -3,6 +3,9 @@ import json
 from tooltip import CreateToolTip
 from editor import Editor
 from memory import MemoryView
+from emu import assembler, emu8085
+from regview import RegView
+
 class App():
     def __init__(self, setting:str=None) -> None:
         self.root = Tk()
@@ -49,21 +52,44 @@ class App():
         self.btn_start.config(state='active')
 
         self.feditor = Editor(self.rootframe)
-        self.feditor.place(relx=1-0.4, y=self.btnc_size+20, relwidth=0.4, relheight=1, anchor='nw')
+        self.feditor.place(relx=1-0.5, y=self.btnc_size+20, relwidth=0.5, relheight=1, anchor='nw')
         self.feditor.createtag(['MOV', 'MVI', 'STA', 'CALL', 'LXI', 'MVI', 'LDA', 'LDAX', 'STA', 'STAX', 'IN', 'OUT', 'LHLD', 'SHLD', 'XCHG',
                                 'ADD', 'ADI', 'SUB', 'SUI', 'INR', 'DCR', 'INX', 'DCX', 'ADC', 'ACI', 'SBB', 'SBI', 'DAD', 'DAA',
-                                'ANA', 'ANI', 'ORA', 'ORI', 'XRA', 'XRI', 'CMA', 'CMP', 'CPI', 'RLC', 'RAL', 'RRC', 'RAR', 'CMC', 'STC', 'CMA',
+                                'ANA', 'ANI', 'ORA', 'ORI', 'XRA', 'XRI', 'CMA', 'CMP', 'CPI', 'RLC', 'RAL', 'RRC', 'RAR', 'CMC', 'STC',
                                 'JMP', 'JC', 'JNC', 'JZ', 'JNZ', 'JP', 'JM', 'JPE', 'JPO',
                                 'CALL', 'CC', 'CNC', 'CZ', 'CNZ', 'CP', 'CM', 'CPE', 'CPO',
                                 'RET', 'RC', 'RNC', 'RZ', 'RNZ', 'RP', 'RM', 'RPE', 'RPO',
                                 'RST',
                                 'PUSH', 'POP', 'XTHL', 'SPHL', 'PCHL', 'DI', 'EI', 'SIM', 'RIM', 'NOP', 'HLT'], 'ins', foreground='purple')
         self.feditor.createtag(['A', 'PSW', 'B', 'C', 'D', 'E', 'H', 'L', 'SP', 'PC', 'M'], 'reg', foreground='blue')
+        self.feditor.twidget.insert(INSERT, 'hlt')
+
+        self.fmemview = MemoryView(self.rootframe)
+        self.fmemview.place(relx=0, y=self.btnc_size+20, relwidth=0.325, relheight=0.4, anchor='nw')
         
-        self.fmemview = MemoryView(self.rootframe, background="black")
-        self.fmemview.place(relx=0, y=self.btnc_size+20, relwidth=0.4, relheight=0.4*(16/9), anchor='nw')
-        
+        self.regview = RegView(self.rootframe, background='white')
+        self.regview.place(relx=0.33, y=self.btnc_size+20, relwidth=0.15, relheight=0.4, anchor='nw')
+
         self.celine = 1
+
+        self.fasmview = Text(self.rootframe, font=('consolas', 14), wrap='none')
+        self.fasmview.configure(state=DISABLED)
+        self.fasmview.place(relx=0, rely=1, relwidth=0.325, relheight=0.5, anchor='sw')
+        
+        # Create scrollbars
+        self.xscrollbar = Scrollbar(self.rootframe, orient=HORIZONTAL, command=self.fasmview.xview)
+        self.xscrollbar.place(rely=1, relwidth=0.325, anchor='sw')
+        self.yscrollbar = Scrollbar(self.rootframe, orient=VERTICAL, command=self.fasmview.yview)
+        self.yscrollbar.place(relx= 0.325, rely=1, relheight=0.5, anchor='sw')
+
+        # Attach canvas to scrollbars
+        self.fasmview.configure(xscrollcommand=self.xscrollbar.set, yscrollcommand=self.yscrollbar.set, foreground='brown')
+
+        self.asmer = assembler()
+        self.emu = emu8085()
+
+        self.fmemview.setemulator(self.emu)
+        self.regview.setemulator(self.emu)
 
     def dpiaware(self) -> None:
         import os
@@ -100,19 +126,31 @@ class App():
             self.root.update()
 
     def simstop(self) -> None:
+        print('simstop called!')
         self.feditor.removebreakpoint()
         for simbtn in self.a_simbtn:
             simbtn.config(state='disabled')
-        print('simstop called!')
         self.btn_start.config(state='active')
+        self.feditor.enable()
         pass
     
     def simstart(self) -> None:
         print('simstart called!')
+        # print('breakpoints at', self.feditor.getbreakpoints())
+        self.assemblecode()
+        self.emu.reset()
+        self.emu.loadbinary(self.asmer.pmemory)
+        self.emu.setdebuglinescache(self.asmer.dbglinecache)
+
+        self.fmemview.refreshpage()
+        self.regview.refreshpage()
+        # print(self.asmer.dbglinecache)
         for simbtn in self.a_simbtn:
             simbtn.config(state='active')
 
+        self.feditor.disable()
         self.btn_start.config(state='disabled')
+        self.celine = self.emu.getcurrentline()
         self.feditor.updatebreakpoint(self.celine)
         pass
 
@@ -125,13 +163,33 @@ class App():
         pass
 
     def simstepover(self) -> None:
-        self.celine += 1
-        self.feditor.updatebreakpoint(self.celine)
         print('simstepover called!')
-        pass
+        self.emu.runcrntins()
+        if (self.emu.haulted):
+            self.simstop()
+            return
+        self.celine = self.emu.getcurrentline()
+        self.fmemview.refreshpage()
+        self.regview.refreshpage()
+        self.feditor.updatebreakpoint(self.celine)
+    
 
     def simstepback(self) -> None:
         self.celine -= 1
         self.feditor.updatebreakpoint(self.celine)
         print('simstepback called!')
         pass
+
+    def updateasmout(self, str="") -> None:
+        self.fasmview.configure(state=NORMAL)
+        self.fasmview.delete('1.0', END)
+        self.fasmview.insert(INSERT, str)
+        self.fasmview.configure(state=DISABLED)
+
+    def assemblecode(self) -> (bool, str):
+        self.asmer.reset()
+        state , err = self.asmer.assemble(self.feditor.getlines())
+        print(state, err)
+        self.asmer.generateasmdump()
+        self.updateasmout(self.asmer.dbugasm)
+        return state, err
