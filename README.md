@@ -7,3 +7,4 @@ Installation:
 3.) cd to the folder you just cloned and launch with python3 main.py or python main.py
 
 Screenshots:
+https://postimg.cc/s1f2Gc5w
