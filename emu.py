@@ -417,7 +417,7 @@ class emu8085:
             return
         #lxi rp, ds
         elif((ins & 0xCF) == 0x01):
-            print('pass')
+            #print('pass')
             sreg = ins>>4
             lval = self.memory[self.PC.value].value
             self.incpc()
@@ -805,7 +805,7 @@ class emu8085:
         #dad rp
         elif (ins & 0xCF == 0x09):
             sreg = (ins & 0xf0)>>4
-            fval = (self.H.value << 8) + self.L.value
+            fval = (self.H.value << 4) + self.L.value
             match sreg:
                 case 0x0:
                     fval += ((self.B.value << 8) + self.C.value)
