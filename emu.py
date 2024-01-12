@@ -121,8 +121,12 @@ class emu8085:
         self.dbglinecache = cache
     
     def getcurrentline(self) -> int:
-        if self.dbglinecache != None:
-            return self.dbglinecache[self.PC.value - self.ploadaddress.value]
+        if self.haulted == False:
+            try:
+                return self.dbglinecache[self.PC.value - self.ploadaddress.value]
+            except:
+                print("exeception encountered while getting current binary line program ran out of scope!")
+                self.haulted = True
         else:
             return 1
 
@@ -801,19 +805,19 @@ class emu8085:
         #dad rp
         elif (ins & 0xCF == 0x09):
             sreg = (ins & 0xf0)>>4
-            fval = (self.h.val << 4) + self.L.value
+            fval = (self.H.value << 4) + self.L.value
             match sreg:
                 case 0x0:
-                    fval += ((self.B.value << 8) + self.C.value) - 1
+                    fval += ((self.B.value << 8) + self.C.value)
 
                 case 0x1:
-                    fval =+ ((self.D.value << 8) + self.E.value) - 1
+                    fval += ((self.D.value << 8) + self.E.value)
 
                 case 0x2:
-                    fval += ((self.H.value << 8) + self.L.value) - 1
+                    fval += ((self.H.value << 8) + self.L.value)
                 
                 case 0x3:
-                    fval += self.SP.value - 1
+                    fval += self.SP.value
             if (fval > 0xff): self.setcarryflag(1)
             self.H.value = fval >> 8
             self.L.value = fval & 0xff
@@ -1457,8 +1461,8 @@ class assembler():
     def addlabeloff(self, label:str, offset:int) -> bool:
         if not label in self.labeloff:
             self.labeloff[label] = offset
-            True
-        else: False
+            return True
+        else: return False
     
     def miscissinglebarg(self, lexa, off) -> (bool, str):
         if (len(lexa) == (off+1)+1):
@@ -1477,7 +1481,7 @@ class assembler():
             if lexa[off+1] == LexTag.DSHORT:
                 return True, ''
             else : 
-                return False, 'invaid arg, was expecting a byte'
+                return False, 'invaid arg, was expecting a double'
         else:
             if (len(lexa) > (off+1)+1):
                 return False, "was expecting fewer args!"
@@ -1568,7 +1572,7 @@ class assembler():
                     self.pmemory[toupoff+1] = adl
                 self.toresolvelabels.pop(label)
         if (self.toresolvelabels != {}):
-            return False, 'error unresolved labels'
+            return False, f'error unresolved labels {list(self.toresolvelabels)}'
         return True, ''
     def assemble(self, lines) -> (bool, str):
         self.dclines = lines
@@ -1576,6 +1580,7 @@ class assembler():
             sa, lexa = lexline(line)
             oplen = 0
             opcodes = []
+            #instruction offset incase of label defined before instruction 
             inso = 0
             if sa != []:
                 if LexTag.SCOLON in lexa:
@@ -1586,7 +1591,8 @@ class assembler():
                     if (scount > 1):
                         return False, "was expecting single colon"
                     if lexa[0] == LexTag.DSTRING and lexa[1] == LexTag.SCOLON:
-                        self.addlabeloff(sa[0], self.cprogmemoff)
+                        if(self.addlabeloff(sa[0], self.cprogmemoff) == False):
+                            return False, f'label {sa[0]} was already defined'
                         if (len(lexa) == 2):
                             inso = -1
                         else:
@@ -1711,7 +1717,7 @@ class assembler():
                             else:
                                 return False, 'invalid args'
                         else:
-                            return False, 'opcode located error'
+                            return False, 'opcode locate error'
             self.plsize.append(oplen)
             for opcode in opcodes:
                 self.pmemory.append(opcode)

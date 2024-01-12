@@ -5,7 +5,7 @@ from editor import Editor
 from memory import MemoryView
 from emu import assembler, emu8085
 from regview import RegView
-
+from threading import Thread, Lock
 class App():
     def __init__(self, setting:str=None) -> None:
         self.root = Tk()
@@ -45,7 +45,7 @@ class App():
         self.btn_stepback.pack(side=LEFT)
         CreateToolTip(self.btn_stepback, 'stepback', self.btn_ospawn, self.btn_ospawn)
 
-        self.a_simbtn = [self.btn_stop, self.btn_start, self.btn_pause, self.btn_continue, self.btn_stepover, self.btn_stepback]
+        self.a_simbtn = [self.btn_stop, self.btn_continue, self.btn_stepover, self.btn_stepback, self.btn_start, self.btn_pause]
         for simbtn in self.a_simbtn:
             simbtn.config(state='disabled')
         
@@ -67,8 +67,8 @@ class App():
         self.fmemview = MemoryView(self.rootframe)
         self.fmemview.place(relx=0, y=self.btnc_size+20, relwidth=0.325, relheight=0.4, anchor='nw')
         
-        self.regview = RegView(self.rootframe, background='white')
-        self.regview.place(relx=0.33, y=self.btnc_size+20, relwidth=0.15, relheight=0.4, anchor='nw')
+        self.fregview = RegView(self.rootframe, background='white')
+        self.fregview.place(relx=0.33, y=self.btnc_size+20, relwidth=0.15, relheight=0.4, anchor='nw')
 
         self.celine = 1
 
@@ -88,9 +88,17 @@ class App():
         self.asmer = assembler()
         self.emu = emu8085()
 
-        self.fmemview.setemulator(self.emu)
-        self.regview.setemulator(self.emu)
+        self.lockexe = Lock()
+        self.lockexestatus = Lock()
+        self.threadexe:Thread = None
 
+        self.fmemview.setemulator(self.emu)
+        self.fregview.setemulator(self.emu)
+        self.isneedtostop = False
+        self.isexecthreadactive = True
+    
+        self.wassimstop = False
+    
     def dpiaware(self) -> None:
         import os
         if (os.name == 'nt'):
@@ -124,43 +132,64 @@ class App():
     def mainloop(self) -> None:
         while self.isopen():
             self.root.update()
+            self.checkexecthread()
 
     def simstop(self) -> None:
         print('simstop called!')
+        self.wassimstop = True
+        
+        self.lockexe.acquire()
+        self.isneedtostop = True
+        self.lockexe.release()
         self.feditor.removebreakpoint()
         for simbtn in self.a_simbtn:
             simbtn.config(state='disabled')
         self.btn_start.config(state='active')
         self.feditor.enable()
-        pass
+        # self.threadexe.join()
     
     def simstart(self) -> None:
         print('simstart called!')
         # print('breakpoints at', self.feditor.getbreakpoints())
-        self.assemblecode()
-        self.emu.reset()
-        self.emu.loadbinary(self.asmer.pmemory)
-        self.emu.setdebuglinescache(self.asmer.dbglinecache)
+        self.isneedtostop = False
+        self.wassimstop = False
+        assemble_status , msg = self.assemblecode()
+        if (assemble_status == True):
+            self.emu.reset()
+            self.emu.loadbinary(self.asmer.pmemory)
+            self.emu.setdebuglinescache(self.asmer.dbglinecache)
 
-        self.fmemview.refreshpage()
-        self.regview.refreshpage()
-        # print(self.asmer.dbglinecache)
-        for simbtn in self.a_simbtn:
-            simbtn.config(state='active')
+            self.btn_start.config(state='disabled')
+            self.btn_stop.configure(state='normal')
 
-        self.feditor.disable()
-        self.btn_start.config(state='disabled')
-        self.celine = self.emu.getcurrentline()
-        self.feditor.updatebreakpoint(self.celine)
-        pass
+            self.fmemview.refreshpage()
+            self.fregview.refreshpage()
+            # print(self.asmer.dbglinecache)
+
+            self.btn_pause.configure(state='normal')
+            self.feditor.disable()
+            self.threadexe = Thread(target=self.funcexecution)
+            self.threadexe.start()
 
     def simpause(self) -> None:
+        self.lockexe.acquire()
+        self.isneedtostop = True
+        self.lockexe.release()
         print('simpause called!')
         pass
 
     def simcontinue(self) -> None:
         print('simcontinue called!')
-        pass
+
+        self.isneedtostop = False
+        self.wassimstop = False
+        self.btn_stepback.configure(state='disabled')
+        self.btn_stepover.configure(state='disabled')
+        self.feditor.removebreakpoint()
+
+        self.threadexe = Thread(target=self.funcexecution, args=(True,))
+        self.btn_pause.configure(state='normal')
+        self.threadexe.start()
 
     def simstepover(self) -> None:
         print('simstepover called!')
@@ -170,13 +199,13 @@ class App():
             return
         self.celine = self.emu.getcurrentline()
         self.fmemview.refreshpage()
-        self.regview.refreshpage()
+        self.fregview.refreshpage()
         self.feditor.updatebreakpoint(self.celine)
     
 
     def simstepback(self) -> None:
-        self.celine -= 1
-        self.feditor.updatebreakpoint(self.celine)
+        # self.celine -= 1
+        # self.feditor.updatebreakpoint(self.celine)
         print('simstepback called!')
         pass
 
@@ -191,5 +220,67 @@ class App():
         state , err = self.asmer.assemble(self.feditor.getlines())
         print(state, err)
         self.asmer.generateasmdump()
-        self.updateasmout(self.asmer.dbugasm)
+        if state == True:
+            self.fasmview.configure(foreground='brown')
+            self.updateasmout(self.asmer.dbugasm)
+        else:
+            self.fasmview.configure(foreground='red')
+            cerrline = len(self.asmer.plsize)+1
+            self.updateasmout(f'line::{str(cerrline) + " " + err}')
         return state, err
+
+    def funcexecution(self, ignorefbreak=False):
+        self.lockexe.acquire()
+        self.celine = self.emu.getcurrentline()
+        while self.emu.haulted == False and ((self.celine not in self.feditor.activebreakpoints) or (ignorefbreak == True)) and not self.isneedtostop:
+            self.lockexe.release()
+            self.emu.runcrntins()
+            self.lockexe.acquire()
+            self.celine = self.emu.getcurrentline()
+            ignorefbreak = False
+        self.lockexe.release()
+        print("thread has done executing")
+        self.lockexestatus.acquire()
+        self.isexecthreadactive = False
+        self.lockexestatus.release()
+        return
+    
+    def postexecution(self):
+        self.fmemview.refreshpage()
+        self.fregview.refreshpage()
+        
+        if(self.emu.haulted == True):
+            self.simstop()
+            return
+        elif (self.wassimstop == True):
+            return
+        else:
+            self.feditor.updatebreakpoint(self.celine) 
+            for simbtn in self.a_simbtn[:-2]:
+                simbtn.configure(state='active')
+            self.btn_pause.configure(state='disabled')
+
+    def checkexecthread(self):
+        self.lockexestatus.acquire()
+        status = self.isexecthreadactive
+        self.lockexestatus.release()
+        if (status == False):
+            self.threadexe.join()
+            self.postexecution()
+            self.isexecthreadactive = True
+            print("thread has now joined the main thread")
+    
+    def teminate(self):
+        self.lockexestatus.acquire()
+        status = self.isexecthreadactive
+        self.lockexestatus.release()
+        if (status == True):
+            print("terminating running threads!")
+            self.lockexe.acquire()
+            self.isneedtostop = True
+            self.lockexe.release()
+            try:
+                self.threadexe.join()
+            except:
+                pass
+            print("treminate completed!")

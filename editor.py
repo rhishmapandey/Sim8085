@@ -57,15 +57,15 @@ class Editor(Frame):
         lc = loffstart
         for line in lines:
             lc += 1
-            #check label
-            ol = line.find(':')
-            if (ol != -1):
-                self.twidget.tag_add('label', f'{lc}.0' ,f'{lc}.{ol}')
             #check comment
             oc = line.find(';')
             if (oc != -1):
                 self.twidget.tag_add('comment', f'{lc}.{oc}', f'{lc}.{0} lineend')
                 line = line[0:oc]
+            #check label
+            ol = line.find(':')
+            if (ol != -1):
+                self.twidget.tag_add('label', f'{lc}.0' ,f'{lc}.{ol}')
             line = line.upper()
             for t_id, t_idnstrs in self.twidget.tags:
                 for idnstr in t_idnstrs:
