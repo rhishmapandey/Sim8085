@@ -91,12 +91,14 @@ class emu8085:
         self.PC = c_ushort()
 
         self.dbglinecache = []
-
+        
         self.haulted = False
+        self.wasexecerr = False
         for i in range(0xffff+1):
             self.memory.append(c_ubyte())
+        
         self.reset()
-    
+
     def reset(self) -> None:
         for cell in self.memory:
             cell.value = 0x76
@@ -114,7 +116,7 @@ class emu8085:
         self.PC.value = self.ploadaddress.value
 
         self.haulted = False
-
+        self.wasexecerr = False
         self.dbglinecache = []
 
     def setdebuglinescache(self, cache) -> None:
@@ -126,6 +128,7 @@ class emu8085:
                 return self.dbglinecache[self.PC.value - self.ploadaddress.value]
             except:
                 print("exeception encountered while getting current binary line program ran out of scope!")
+                self.wasexecerr = True
                 self.haulted = True
         else:
             return 1

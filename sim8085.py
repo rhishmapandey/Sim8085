@@ -6,6 +6,7 @@ from memory import MemoryView
 from emu import assembler, emu8085
 from regview import RegView
 from threading import Thread, Lock
+from tkinter import messagebox
 class App():
     def __init__(self, setting:str=None) -> None:
         self.root = Tk()
@@ -195,6 +196,7 @@ class App():
         print('simstepover called!')
         self.emu.runcrntins()
         if (self.emu.haulted):
+            self.execerrcallbackhandle(self.emu.wasexecerr)
             self.simstop()
             return
         self.celine = self.emu.getcurrentline()
@@ -251,7 +253,7 @@ class App():
         
         if(self.emu.haulted == True):
             self.simstop()
-            return
+            self.execerrcallbackhandle(self.emu.wasexecerr)
         elif (self.wassimstop == True):
             return
         else:
@@ -284,3 +286,9 @@ class App():
             except:
                 pass
             print("treminate completed!")
+    
+    def execerrcallbackhandle(self, err):
+        if (err):
+            messagebox.showerror("Execution Error", "Program Ran Out Of Scope!")
+        else:
+            messagebox.showinfo("Success", "Program Execution Was Completed!")
