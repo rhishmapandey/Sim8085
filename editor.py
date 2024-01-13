@@ -127,8 +127,9 @@ class Editor(Frame):
         #print(self.__nolines(), len(self.twindows))
 
     def updatebreakpoint(self, line:int) -> None:
-        self.removebreakpoint()
-        self.twidget.tag_add('breakpoint', f'{line}.0', f'{line}.0 lineend')
+        if (line != 0):
+            self.removebreakpoint()
+            self.twidget.tag_add('breakpoint', f'{line}.0', f'{line}.0 lineend')
 
     def removebreakpoint(self) -> None:
         self.twidget.tag_remove('breakpoint', '1.0', 'end')

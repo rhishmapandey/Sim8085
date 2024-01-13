@@ -130,6 +130,7 @@ class emu8085:
                 print("exeception encountered while getting current binary line program ran out of scope!")
                 self.wasexecerr = True
                 self.haulted = True
+                return 0
         else:
             return 1
 
