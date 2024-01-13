@@ -1150,7 +1150,7 @@ class emu8085:
             self.A.value = fval
             return
         #xri db
-        elif (ins == 0xF6):
+        elif (ins == 0xEE):
             opval = self.memory[self.PC.value].value
             self.incpc()
             fval = (self.A.value ^ opval)
