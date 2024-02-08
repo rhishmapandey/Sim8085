@@ -1,5 +1,4 @@
 from tkinter import *
-import json
 from tooltip import CreateToolTip
 from editor import Editor
 from memory import MemoryView
