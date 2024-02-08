@@ -190,6 +190,7 @@ class App():
 
         self.threadexe = Thread(target=self.funcexecution, args=(True,))
         self.btn_pause.configure(state='normal')
+        self.btn_continue.configure(state='disabled')
         self.threadexe.start()
 
     def simstepover(self) -> None:
