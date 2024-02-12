@@ -64,6 +64,8 @@ class PluginInternal:
             elif (stype == 1):
                 print("plugininternal in signal recieved")
                 self.handlein(saddr, sbyte)
+            elif (stype == 0xff):
+                print("plugininternal ignore signal recieved")
             else:
                 print("plugininternal invalid signal recieved")
                 return False

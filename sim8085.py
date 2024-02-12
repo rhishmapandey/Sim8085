@@ -98,6 +98,8 @@ class App():
         self.isexecthreadactive = True
     
         self.wassimstop = False
+
+        self.wasconnected = False
     
     def dpiaware(self) -> None:
         import os
@@ -145,7 +147,13 @@ class App():
         for simbtn in self.a_simbtn:
             simbtn.config(state='disabled')
         self.btn_start.config(state='active')
+        #send a ignore signal to check if plugin is still active
+        if (self.wasconnected):
+            self.emu.plugin.sendsignal(0xff, 0xff, 0xff)
         if (not self.emu.plugin.isconnected):
+            if (self.wasconnected):
+                messagebox.showerror("PluginError", "Plugin was disconnected!")
+                self.wasconnected = False
             self.btn_pluginconnect.configure(state='active')
         self.feditor.enable()
         # self.threadexe.join()
@@ -212,9 +220,12 @@ class App():
         # self.feditor.updatebreakpoint(self.celine)
         print('simpluginconnect called!')
         if (self.emu.connectplugin()):
+            messagebox.showinfo("PluginConnected", "Plugin was successfully attached!")
             self.btn_pluginconnect.configure(state='disabled')
+            self.wasconnected = True
             print('plugin connected')
         else:
+            messagebox.showerror("PluginError", "Plugin wasnot able to connect!")
             print('plugin couldnot be connected')
 
     def updateasmout(self, str="") -> None:
