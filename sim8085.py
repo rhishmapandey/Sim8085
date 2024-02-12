@@ -41,11 +41,11 @@ class App():
         self.btn_stepover.pack(side=LEFT)
         CreateToolTip(self.btn_stepover, 'stepover', self.btn_ospawn, self.btn_ospawn)
 
-        self.btn_stepback = Button(self.simcbntframe, image=self.img_stepback, width=self.btnc_size, height=self.btnc_size, command=self.simstepback)
-        self.btn_stepback.pack(side=LEFT)
-        CreateToolTip(self.btn_stepback, 'stepback', self.btn_ospawn, self.btn_ospawn)
+        self.btn_pluginconnect = Button(self.simcbntframe, image=self.img_pluginconnect, width=self.btnc_size, height=self.btnc_size, command=self.simpluginconnect)
+        self.btn_pluginconnect.pack(side=LEFT)
+        CreateToolTip(self.btn_pluginconnect, 'pluginconnect', self.btn_ospawn, self.btn_ospawn)
 
-        self.a_simbtn = [self.btn_stop, self.btn_continue, self.btn_stepover, self.btn_stepback, self.btn_start, self.btn_pause]
+        self.a_simbtn = [self.btn_stop, self.btn_continue, self.btn_stepover, self.btn_start, self.btn_pause]
         for simbtn in self.a_simbtn:
             simbtn.config(state='disabled')
         
@@ -114,7 +114,7 @@ class App():
             self.img_continue = PhotoImage(file="res/continue.png")
             self.img_pause = PhotoImage(file="res/pause.png")
             self.img_stepover = PhotoImage(file="res/stepover.png")
-            self.img_stepback = PhotoImage(file="res/stepback.png")
+            self.img_pluginconnect = PhotoImage(file="res/pluginconnect.png")
             self.img_breakpoint = PhotoImage(file="res/breakpoint.png")
             self.btnc_size = 32
             self.btn_ospawn = 40
@@ -145,6 +145,8 @@ class App():
         for simbtn in self.a_simbtn:
             simbtn.config(state='disabled')
         self.btn_start.config(state='active')
+        if (not self.emu.plugin.isconnected):
+            self.btn_pluginconnect.configure(state='active')
         self.feditor.enable()
         # self.threadexe.join()
     
@@ -160,6 +162,7 @@ class App():
             self.emu.setdebuglinescache(self.asmer.dbglinecache)
 
             self.btn_start.config(state='disabled')
+            self.btn_pluginconnect.config(state='disabled')
             self.btn_stop.configure(state='normal')
 
             self.fmemview.refreshpage()
@@ -183,7 +186,6 @@ class App():
 
         self.isneedtostop = False
         self.wassimstop = False
-        self.btn_stepback.configure(state='disabled')
         self.btn_stepover.configure(state='disabled')
         self.feditor.removebreakpoint()
 
@@ -205,11 +207,15 @@ class App():
         self.feditor.updatebreakpoint(self.celine)
     
 
-    def simstepback(self) -> None:
+    def simpluginconnect(self) -> None:
         # self.celine -= 1
         # self.feditor.updatebreakpoint(self.celine)
-        print('simstepback called!')
-        pass
+        print('simpluginconnect called!')
+        if (self.emu.connectplugin()):
+            self.btn_pluginconnect.configure(state='disabled')
+            print('plugin connected')
+        else:
+            print('plugin couldnot be connected')
 
     def updateasmout(self, str="") -> None:
         self.fasmview.configure(state=NORMAL)
@@ -217,7 +223,7 @@ class App():
         self.fasmview.insert(INSERT, str)
         self.fasmview.configure(state=DISABLED)
 
-    def assemblecode(self) -> (bool, str):
+    def assemblecode(self) -> list[bool, str]:
         self.asmer.reset()
         state , err = self.asmer.assemble(self.feditor.getlines())
         print(state, err)

@@ -4,7 +4,7 @@ class Editor(Frame):
     def __init__(self, master=None, **kw) -> None:
         Frame.__init__(self, master, kw)
         # create a proxy for the underlying widget
-        self.twidget = Text(self, kw, wrap='none')
+        self.twidget = Text(self, kw, wrap='none', undo=TRUE)
         self.twidget.place(x=100, relwidth=0.8, relheight=0.9, anchor='nw')
         self.twidget._orig = self.twidget._w + "_orig"
         self.twidget.tk.call("rename", self.twidget._w, self.twidget._orig)

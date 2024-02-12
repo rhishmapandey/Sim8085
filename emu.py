@@ -1,6 +1,6 @@
 from ctypes import *
 from enum import Enum
-
+from pluginexternal import PluginExternal
 _opcodes = ['MOV', 'MVI', 'STA', 'CALL', 'LXI', 'MVI', 'LDA', 'LDAX', 'STA', 'STAX', 'IN', 'OUT', 'LHLD', 'SHLD', 'XCHG',
                                 'ADD', 'ADI', 'SUB', 'SUI', 'INR', 'DCR', 'INX', 'DCX', 'ADC', 'ACI', 'SBB', 'SBI', 'DAD', 'DAA',
                                 'ANA', 'ANI', 'ORA', 'ORI', 'XRA', 'XRI', 'CMA', 'CMP', 'CPI', 'RLC', 'RAL', 'RRC', 'RAR', 'CMC', 'STC',
@@ -70,7 +70,7 @@ def misc_getele(line:str) -> list:
                 start = i+1
         if (start < len(l)):
             ret.append(l[start:i+1])
-    return ret      
+    return ret
 
 class emu8085:
     def __init__(self) -> None:
@@ -78,14 +78,14 @@ class emu8085:
         self.ploadaddress = c_ushort()
         self.ploadaddress.value = 0x0800
 
-        self.A = c_ubyte()
-        self.F = c_ubyte()
-        self.B = c_ubyte()
-        self.C = c_ubyte()
-        self.D = c_ubyte()
-        self.E = c_ubyte()
-        self.H = c_ubyte()
-        self.L = c_ubyte()
+        self.A : c_ubyte = c_ubyte()
+        self.F : c_ubyte = c_ubyte()
+        self.B : c_ubyte = c_ubyte()
+        self.C : c_ubyte = c_ubyte()
+        self.D : c_ubyte = c_ubyte()
+        self.E : c_ubyte = c_ubyte()
+        self.H : c_ubyte = c_ubyte()
+        self.L : c_ubyte = c_ubyte()
 
         self.SP = c_ushort()
         self.PC = c_ushort()
@@ -94,9 +94,9 @@ class emu8085:
         
         self.haulted = False
         self.wasexecerr = False
+        self.plugin:PluginExternal = PluginExternal()
         for i in range(0xffff+1):
             self.memory.append(c_ubyte())
-        
         self.reset()
 
     def reset(self) -> None:
@@ -118,6 +118,9 @@ class emu8085:
         self.haulted = False
         self.wasexecerr = False
         self.dbglinecache = []
+
+    def connectplugin(self, port:int=6772) -> bool:
+        return self.plugin.tryconnect(port)
 
     def setdebuglinescache(self, cache) -> None:
         self.dbglinecache = cache
@@ -474,11 +477,18 @@ class emu8085:
             return
         #in db
         elif (ins == 0xDB):
+            pval = self.memory[self.PC.value].value
             self.incpc()
+            if (self.plugin.isconnected):
+                rstat, rbyte = self.plugin.inport(pval)
+                self.A.value = rbyte
             return
         #out db
         elif (ins == 0xD3):
+            pval = self.memory[self.PC.value].value
             self.incpc()
+            if (self.plugin.isconnected):
+                rstat = self.plugin.outport(pval, self.A.value)
             return
         #lhld ds
         elif (ins == 0x2A):
@@ -1468,7 +1478,7 @@ class assembler():
             return True
         else: return False
     
-    def miscissinglebarg(self, lexa, off) -> (bool, str):
+    def miscissinglebarg(self, lexa, off) -> list[bool, str]:
         if (len(lexa) == (off+1)+1):
             if lexa[off+1] == LexTag.DBYTE:
                 return True, ''
@@ -1480,7 +1490,7 @@ class assembler():
             if (len(lexa) > (off+1)+1):
                 return False, "was expecting a byte arg!"
 
-    def miscissingledarg(self, lexa, off) -> (bool, str):
+    def miscissingledarg(self, lexa, off) -> list[bool, str]:
         if (len(lexa) == (off+1)+1):
             if lexa[off+1] == LexTag.DSHORT:
                 return True, ''
@@ -1492,7 +1502,7 @@ class assembler():
             if (len(lexa) > (off+1)+1):
                 return False, "was expecting two bytes arg!"
     
-    def miscissinglerarg(self, lexa, off) -> (bool, str):
+    def miscissinglerarg(self, lexa, off) -> list[bool, str]:
         if (len(lexa) == (off+1)+1):
             if lexa[off+1] == LexTag.REG:
                 return True, ''
@@ -1504,7 +1514,7 @@ class assembler():
             if (len(lexa) < (off+1)+1):
                 return False, "was expecting a reg arg"
             
-    def miscissinglelab(self, lexa, off) -> (bool, str):
+    def miscissinglelab(self, lexa, off) -> list[bool, str]:
         if (len(lexa) == (off+1)+1):
             if lexa[off+1] == LexTag.DSTRING or LexTag.DSHORT:
                 return True, ''
@@ -1516,7 +1526,7 @@ class assembler():
             if (len(lexa) < (off+1)+1):
                 return False, "was expecting a string arg"
             
-    def miscissinglerparg(self, lexa, s, off, regs=['B', 'D', 'H', 'SP']) -> (bool,str):
+    def miscissinglerparg(self, lexa, s, off, regs=['B', 'D', 'H', 'SP']) -> list[bool, str]:
         if (len(lexa) == (off+1)+1):
             if s in regs:
                 return True, ''
@@ -1528,7 +1538,7 @@ class assembler():
             if (len(lexa) < (off+1)+1):
                 return False, "was expecting a rpargs"
             
-    def miscisnoarg(self, lexa, off) -> (bool, str):
+    def miscisnoarg(self, lexa, off) -> list[bool, str]:
         if (len(lexa) == (off+1)):
                 return True, ''
         else : 
@@ -1563,7 +1573,7 @@ class assembler():
                     if reg == sval: break
                     off +=1
                 return bopcode + off*inc
-    def resolvelabels(self) -> (bool, str):
+    def resolvelabels(self) -> list[bool, str]:
         # print(list(self.labeloff))
         for label in list(self.labeloff):
             if label in list(self.toresolvelabels):
@@ -1578,7 +1588,7 @@ class assembler():
         if (self.toresolvelabels != {}):
             return False, f'error unresolved labels {list(self.toresolvelabels)}'
         return True, ''
-    def assemble(self, lines) -> (bool, str):
+    def assemble(self, lines) -> list[bool, str]:
         self.dclines = lines
         for line in lines:
             sa, lexa = lexline(line)
