@@ -6,11 +6,13 @@ from emu import assembler, emu8085
 from regview import RegView
 from threading import Thread, Lock
 from tkinter import messagebox
+from tkinter import filedialog
 class App():
     def __init__(self, setting:str=None) -> None:
         self.root = Tk()
         self.root.title("Sim8085")
         self.dpiaware()
+        
 
         self.rootframe = Frame(self.root)
         self.rootframe.place(relx=0, rely=0, relwidth=1, relheight=1, anchor='nw')
@@ -100,7 +102,26 @@ class App():
         self.wassimstop = False
 
         self.wasconnected = False
-    
+        # Create the first menu.
+        self.menubar = Menu()
+        
+        # create menu item
+        self.file_menu = Menu(self.menubar, tearoff=False)
+        self.file_menu.add_command(label="New", command=self.commandnew, accelerator="Ctrl+N")
+        self.file_menu.add_command(label="Open", command=self.commandopen, accelerator="Ctrl+O")
+        self.file_menu.add_command(label="Save", command=self.commandsave, accelerator="Ctrl+S")
+        self.file_menu.add_command(label="Exit", command=self.commandexit)
+        self.menubar.add_cascade(label="File", menu=self.file_menu)
+        self.edit_menu = Menu(self.menubar, tearoff=False)
+        self.edit_menu.add_command(label="Undo", command=self.feditor.twidget.edit_undo, accelerator="Ctrl+Y")
+        self.edit_menu.add_command(label="Redo", command=self.feditor.twidget.edit_redo, accelerator="Ctrl+Z")
+        self.menubar.add_cascade(label="Edit", menu=self.edit_menu)
+
+        self.root.config(menu=self.menubar)
+        self.root.bind("<Control-n>", lambda e : self.commandnew())
+        self.root.bind("<Control-o>", lambda e : self.commandopen())
+        self.root.bind("<Control-s>", lambda e : self.commandsave())
+
     def dpiaware(self) -> None:
         import os
         if (os.name == 'nt'):
@@ -309,3 +330,37 @@ class App():
             messagebox.showerror("Execution Error", "Program Ran Out Of Scope!")
         else:
             messagebox.showinfo("Success", "Program Execution Was Completed!")
+    
+    def commandnew(self):
+        print("commandnew called!")
+        self.feditor.twidget.delete('1.0', 'end')
+
+    def commandopen(self):
+        print("commandopen called!")
+        text_file = filedialog.askopenfile(title="OpenFile", filetypes=[("Assembly", '*.asm')])
+        if (text_file):
+            path = text_file.name
+            try:
+                tfile = open(path, "r")
+                text = tfile.read()
+                self.feditor.twidget.delete('1.0', 'end')
+                self.feditor.twidget.insert(INSERT, text)
+                tfile.close()
+            except:
+                print("commandopen couldnot openfile :", path)
+
+    def commandsave(self):
+        print("commandsave called!")
+        text_file = filedialog.asksaveasfile(title="OpenFile", filetypes=[("Assembly", '*.asm')])
+        if (text_file):
+            path = text_file.name
+            try:
+                tfile = open(path, "w")
+                text = self.feditor.twidget.get('1.0', 'end')
+                tfile.write(text)
+                tfile.close()
+            except:
+                print("commandsave couldnot saved :", path)
+
+    def commandexit(self):
+        print("commandexit called!")
