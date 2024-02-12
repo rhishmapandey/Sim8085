@@ -355,6 +355,8 @@ class App():
         if (text_file):
             path = text_file.name
             try:
+                if (path[-4:] != '.asm'):
+                    path = f'{path}.asm'
                 tfile = open(path, "w")
                 text = self.feditor.twidget.get('1.0', 'end')
                 tfile.write(text)
