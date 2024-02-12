@@ -351,14 +351,14 @@ class App():
 
     def commandsave(self):
         print("commandsave called!")
-        text_file = filedialog.asksaveasfile(title="OpenFile", filetypes=[("Assembly", '*.asm')])
+        text_file = filedialog.asksaveasfilename(title="OpenFile", filetypes=[("Assembly", '*.asm')])
         if (text_file):
-            path = text_file.name
+            path = text_file
             try:
                 if (path[-4:] != '.asm'):
                     path = f'{path}.asm'
-                tfile = open(path, "w")
                 text = self.feditor.twidget.get('1.0', 'end')
+                tfile = open(path, "w")
                 tfile.write(text)
                 tfile.close()
             except:
