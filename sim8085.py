@@ -241,8 +241,8 @@ class App():
         # self.feditor.updatebreakpoint(self.celine)
         print('simpluginconnect called!')
         if (self.emu.connectplugin()):
-            messagebox.showinfo("PluginConnected", "Plugin was successfully attached!")
             self.btn_pluginconnect.configure(state='disabled')
+            messagebox.showinfo("PluginConnected", "Plugin was successfully attached!")
             self.wasconnected = True
             print('plugin connected')
         else:
