@@ -41,7 +41,7 @@ sevseg_1.place(relx=0, rely=0, relwidth=1, relheight=1)
 plugin = Plugin()
 if (not plugin.establishconnection()):
     exit()
-#plugin.run()
+plugin.run()
 
 tmpstate = plugin.state
 #mainloop
