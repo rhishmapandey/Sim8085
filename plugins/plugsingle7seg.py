@@ -26,6 +26,11 @@ def isopen(instance:Tk) -> bool:
 root = Tk()
 # root window title and dimension
 root.title("7seg")
+
+#root.overrideredirect(True)
+root.wm_attributes("-topmost", 1)
+root.wm_attributes("-alpha", 0.6)
+
 # set geometry(widthxheight)
 root.geometry("200x200")
 # add widgets
@@ -36,7 +41,7 @@ sevseg_1.place(relx=0, rely=0, relwidth=1, relheight=1)
 plugin = Plugin()
 if (not plugin.establishconnection()):
     exit()
-plugin.run()
+#plugin.run()
 
 tmpstate = plugin.state
 #mainloop

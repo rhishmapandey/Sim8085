@@ -47,6 +47,9 @@ def isopen(instance:Tk) -> bool:
 root = Tk()
 # root window title and dimension
 root.title("five7seg")
+#root.overrideredirect(True)
+root.wm_attributes("-topmost", 1)
+root.wm_attributes("-alpha", 0.6)
 # set geometry(widthxheight)
 root.geometry("520x120")
 # add widgets
