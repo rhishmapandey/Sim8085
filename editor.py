@@ -1,4 +1,5 @@
 from tkinter import *
+from tkinter import font
 from breakpoint import BreakPoint
 class Editor(Frame):
     def __init__(self, master=None, **kw) -> None:
@@ -25,7 +26,7 @@ class Editor(Frame):
         self.xscrollbar.place(relx=0.6, rely=1, relwidth=0.4, anchor='sw')
         self.twidget.configure(yscrollcommand=self.textmousescroolcallback, xscrollcommand=self.xscrollbar.set) 
 
-        self.twidget.configure(font=('consolas', 20))
+        self.twidget.configure(font=('consolas', self.getfontsizeforpixels('consolas', 32)))
         self.twidget.tags = []
         self.twidget.bind('<<TextModified>>', self.textmodifiedcallback)
         self.twidget.bind('<Tab>', self.tab)
@@ -191,3 +192,17 @@ class Editor(Frame):
     
     def getbreakpoints(self):
         return self.activebreakpoints
+
+    #thanks chatgpt!
+    def getfontsizeforpixels(self, font_family, target_linespace, start=1, end=80, tolerance=1):
+        while start < end:
+            mid = (start + end) // 2
+            f = font.Font(family=font_family, size=mid)
+            linespace = f.metrics('linespace')
+            if abs(linespace - target_linespace) <= tolerance:
+                return mid
+            elif linespace < target_linespace:
+                start = mid + 1
+            else:
+                end = mid - 1
+        return start
