@@ -41,6 +41,8 @@ class Editor(Frame):
         
         self.activebreakpoints = []
         self.updatebtnbreakpoint()
+
+        self.shouldchasebreakpoint = True
     
     def calculatetags(self, loffstart:int=0, loffend:int=None) -> None:
         up_str = f'{loffstart+1}.0'
@@ -131,6 +133,8 @@ class Editor(Frame):
         if (line != 0):
             self.removebreakpoint()
             self.twidget.tag_add('breakpoint', f'{line}.0', f'{line}.0 lineend')
+        if (self.shouldchasebreakpoint):
+            self.moveviewtoline(line)
 
     def removebreakpoint(self) -> None:
         self.twidget.tag_remove('breakpoint', '1.0', 'end')
@@ -206,3 +210,14 @@ class Editor(Frame):
             else:
                 end = mid - 1
         return start
+
+    def moveviewtoline(self, line:int):
+        nolines:int = len(self.tlines)
+        y_start, y_end = self.twidget.yview()
+        y_set:float = line/nolines - (y_end - y_start)*0.25
+        #print(y_start, y_set, y_end)
+        if not (0 < (line/nolines-y_start) < (y_end-y_start)*0.85):
+            if (y_set < 0.0) : y_set = 0.0
+            if (y_set > 1.0) : y_set = 1.0
+            self.tcanvas.yview("moveto", y_set)
+            self.twidget.yview("moveto", y_set)
