@@ -4,6 +4,8 @@ from breakpoint import BreakPoint
 class Editor(Frame):
     def __init__(self, master=None, **kw) -> None:
         Frame.__init__(self, master, kw)
+        # set current font
+        self.fontstyle = "Cascadia Code"
         # create a proxy for the underlying widget
         self.twidget = Text(self, kw, wrap='none', undo=TRUE)
         self.twidget.place(x=100, relwidth=0.8, relheight=0.9, anchor='nw')
@@ -26,7 +28,10 @@ class Editor(Frame):
         self.xscrollbar.place(relx=0.6, rely=1, relwidth=0.4, anchor='sw')
         self.twidget.configure(yscrollcommand=self.textmousescroolcallback, xscrollcommand=self.xscrollbar.set) 
 
-        self.twidget.configure(font=('consolas', self.getfontsizeforpixels('consolas', 32)))
+        self.tarfsinpixs = 32
+        tmpfs, tmpls = self.getfontsizeforpixels(self.fontstyle, self.tarfsinpixs)
+        self.twidget.configure(font=(self.fontstyle, tmpfs))
+        self.btnhei = tmpls
         self.twidget.tags = []
         self.twidget.bind('<<TextModified>>', self.textmodifiedcallback)
         self.twidget.bind('<Tab>', self.tab)
@@ -164,7 +169,6 @@ class Editor(Frame):
         self.tcanvas.yview('moveto', x)
     
     def updatebtnbreakpoint(self):
-        btnhei = 32
         tclines = self.__nolines()
         if self.cbtnbreakpoints != tclines:
             if (self.cbtnbreakpoints > tclines):
@@ -175,21 +179,21 @@ class Editor(Frame):
             else:
                 if (len(self.wbtnbreakpoints) < tclines):
                     for i in range(self.cbtnbreakpoints, len(self.wbtnbreakpoints)):
-                        wc = self.tcanvas.create_window(0, btnhei*i, tags=f'{i+1}',  anchor="nw", window=self.wbtnbreakpoints[i][0])
+                        wc = self.tcanvas.create_window(0, self.btnhei*i, tags=f'{i+1}',  anchor="nw", window=self.wbtnbreakpoints[i][0])
                         self.twindows.append(wc)
                     for i in range(len(self.wbtnbreakpoints), tclines):
                         frame = Frame(self.tcanvas)
-                        label = Label(frame, text=f'{i+1}', font=('consolas', 15), width=5, foreground='grey')
+                        label = Label(frame, text=f'{i+1}', font=(self.fontstyle, 17), width=5, foreground='grey')
                         button = BreakPoint(frame, image=self.img_none)
                         button.setlinenoandimg(i+1, self.img_breakpoint, self.activebreakpoints)
                         button.pack(side=RIGHT)
                         label.pack(side=LEFT)
                         self.wbtnbreakpoints.append([frame, label, button])
-                        wc = self.tcanvas.create_window(0, btnhei*i, tags=f'{i+1}',  anchor="nw", window=self.wbtnbreakpoints[i][0])
+                        wc = self.tcanvas.create_window(0, self.btnhei*i, tags=f'{i+1}',  anchor="nw", window=self.wbtnbreakpoints[i][0])
                         self.twindows.append(wc)
                 else:
                     for i in range(self.cbtnbreakpoints, tclines):
-                        wc = self.tcanvas.create_window(0, btnhei*i, tags=f'{i+1}',  anchor="nw", window=self.wbtnbreakpoints[i][0])
+                        wc = self.tcanvas.create_window(0, self.btnhei*i, tags=f'{i+1}',  anchor="nw", window=self.wbtnbreakpoints[i][0])
                         self.twindows.append(wc)
         self.cbtnbreakpoints = tclines
         self.tcanvas.configure(scrollregion=self.tcanvas.bbox("all"))
@@ -198,18 +202,19 @@ class Editor(Frame):
         return self.activebreakpoints
 
     #thanks chatgpt!
-    def getfontsizeforpixels(self, font_family, target_linespace, start=1, end=80, tolerance=1):
+    def getfontsizeforpixels(self, font_family, target_linespace, start=1, end=80, tolerance=1) -> list[int, int]:
+        linespace = 0
         while start < end:
             mid = (start + end) // 2
             f = font.Font(family=font_family, size=mid)
             linespace = f.metrics('linespace')
             if abs(linespace - target_linespace) <= tolerance:
-                return mid
+                return mid, linespace
             elif linespace < target_linespace:
                 start = mid + 1
             else:
                 end = mid - 1
-        return start
+        return start, linespace
 
     def moveviewtoline(self, line:int):
         nolines:int = len(self.tlines)

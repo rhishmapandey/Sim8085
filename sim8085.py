@@ -9,6 +9,7 @@ from tkinter import messagebox
 from tkinter import filedialog
 class App():
     def __init__(self, setting:str=None) -> None:
+        self.fontstyle = 'Cascadia Code'
         self.root = Tk()
         self.root.title("Sim8085")
         self.dpiaware()
@@ -74,7 +75,7 @@ class App():
 
         self.celine = 1
 
-        self.fasmview = Text(self.rootframe, font=('consolas', 14), wrap='none')
+        self.fasmview = Text(self.rootframe, font=(self.fontstyle, 14), wrap='none')
         self.fasmview.configure(state=DISABLED)
         self.fasmview.place(relx=0, rely=1, relwidth=0.325, relheight=0.5, anchor='sw')
         
@@ -104,6 +105,7 @@ class App():
         self.wasconnected = False
         # Create the first menu.
         self.menubar = Menu()
+        self.menubar.config(borderwidth=0)
         
         # create menu item
         self.file_menu = Menu(self.menubar, tearoff=False)

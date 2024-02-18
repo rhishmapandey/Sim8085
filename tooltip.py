@@ -2,6 +2,7 @@ from tkinter import *
 
 class ToolTip(object):
     def __init__(self, widget, spawnx, spawny):
+        self.fontstyle = 'Cascadia Code'
         self.spawnx = spawnx
         self.spawny = spawny
         self.widget = widget
@@ -22,7 +23,7 @@ class ToolTip(object):
         tw.wm_geometry("+%d+%d" % (x, y))
         label = Label(tw, text=self.text, justify=LEFT,
                       background="#ffffe0", relief=SOLID, borderwidth=1,
-                      font=("consolas", "8", "normal"))
+                      font=(self.fontstyle, "8", "normal"))
         label.pack(ipadx=1)
 
     def hidetip(self):

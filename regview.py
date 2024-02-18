@@ -3,18 +3,19 @@ from tkinter import *
 class RegView(Frame):
     def __init__(self, master=None, **kw) -> None:
         Frame.__init__(self, master, kw)
+        self.fontstyle = 'Cascadia Code'
         hoff = 1.0/6
         self.emulator = None
-        self.btna = Button(self, text= 'A:00', font=('consolas', 15))
-        self.btnf = Button(self, text= 'F:00000000', font=('consolas', 13))
-        self.btnb = Button(self, text= 'B:00', font=('consolas', 15))
-        self.btnc = Button(self, text= 'C:00', font=('consolas', 15))
-        self.btnd = Button(self, text= 'D:00', font=('consolas', 15))
-        self.btne = Button(self, text= 'E:00', font=('consolas', 15))
-        self.btnh = Button(self, text= 'H:00', font=('consolas', 15))
-        self.btnl = Button(self, text= 'L:00', font=('consolas', 15))
-        self.btnsp = Button(self, text='SP:0000', font=('consolas', 15))
-        self.btnpc = Button(self, text='PC:0000', font=('consolas', 15))
+        self.btna = Button(self, text= 'A:00', font=(self.fontstyle, 15))
+        self.btnf = Button(self, text= 'F:00000000', font=(self.fontstyle, 13))
+        self.btnb = Button(self, text= 'B:00', font=(self.fontstyle, 15))
+        self.btnc = Button(self, text= 'C:00', font=(self.fontstyle, 15))
+        self.btnd = Button(self, text= 'D:00', font=(self.fontstyle, 15))
+        self.btne = Button(self, text= 'E:00', font=(self.fontstyle, 15))
+        self.btnh = Button(self, text= 'H:00', font=(self.fontstyle, 15))
+        self.btnl = Button(self, text= 'L:00', font=(self.fontstyle, 15))
+        self.btnsp = Button(self, text='SP:0000', font=(self.fontstyle, 15))
+        self.btnpc = Button(self, text='PC:0000', font=(self.fontstyle, 15))
         
         self.btna.place(rely=hoff*0, anchor='nw', relwidth=0.5, relheight=hoff)
         self.btnf.place(rely=hoff*0, relx=0.5, anchor='nw', relwidth=0.5, relheight=hoff)
