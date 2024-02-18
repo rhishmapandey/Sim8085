@@ -214,9 +214,9 @@ class Editor(Frame):
     def moveviewtoline(self, line:int):
         nolines:int = len(self.tlines)
         y_start, y_end = self.twidget.yview()
-        y_set:float = line/nolines - (y_end - y_start)*0.25
+        y_set:float = line/nolines - (y_end - y_start)*0.15
         #print(y_start, y_set, y_end)
-        if not (0 < (line/nolines-y_start) < (y_end-y_start)*0.85):
+        if not (0 < (line/nolines-y_start) < (y_end-y_start)*0.95):
             if (y_set < 0.0) : y_set = 0.0
             if (y_set > 1.0) : y_set = 1.0
             self.tcanvas.yview("moveto", y_set)
