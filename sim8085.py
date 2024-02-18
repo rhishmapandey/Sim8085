@@ -360,8 +360,16 @@ class App():
                 if (path[-4:] != '.asm'):
                     path = f'{path}.asm'
                 text = self.feditor.twidget.get('1.0', 'end')
+                #"pretty" save
+                ee_count = 0
+                linecount = len(text)
+                for i in range(len(text)):
+                    if (text[linecount-(i+1)] == '\n'):
+                        ee_count += 1
+                    else:
+                        break
                 tfile = open(path, "w")
-                tfile.write(text)
+                tfile.write(text[:(linecount-ee_count)])
                 tfile.close()
             except:
                 print("commandsave couldnot saved :", path)
