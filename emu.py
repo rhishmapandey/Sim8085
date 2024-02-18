@@ -101,7 +101,7 @@ class emu8085:
 
     def reset(self) -> None:
         for cell in self.memory:
-            cell.value = 0x76
+            cell.value = 0x00 #default mem value
         
         self.A.value =0x00
         self.F.value =0x00
