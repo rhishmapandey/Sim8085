@@ -46,7 +46,7 @@ class App():
 
         self.btn_pluginconnect = Button(self.simcbntframe, image=self.img_pluginconnect, width=self.btnc_size, height=self.btnc_size, command=self.simpluginconnect)
         self.btn_pluginconnect.pack(side=LEFT)
-        CreateToolTip(self.btn_pluginconnect, 'pluginconnect', self.btn_ospawn, self.btn_ospawn)
+        CreateToolTip(self.btn_pluginconnect, 'plugintoogle', self.btn_ospawn, self.btn_ospawn)
 
         self.a_simbtn = [self.btn_stop, self.btn_continue, self.btn_stepover, self.btn_start, self.btn_pause]
         for simbtn in self.a_simbtn:
@@ -140,6 +140,7 @@ class App():
             self.img_pause = PhotoImage(file="res/pause.png")
             self.img_stepover = PhotoImage(file="res/stepover.png")
             self.img_pluginconnect = PhotoImage(file="res/pluginconnect.png")
+            self.img_plugindisconnect = PhotoImage(file="res/plugindisconnect.png")
             self.img_breakpoint = PhotoImage(file="res/breakpoint.png")
             self.btnc_size = 32
             self.btn_ospawn = 40
@@ -176,9 +177,10 @@ class App():
         if (not self.emu.plugin.isconnected):
             if (self.wasconnected):
                 messagebox.showerror("PluginError", "Plugin was disconnected!")
+                self.btn_pluginconnect.config(image = self.img_pluginconnect)
                 self.wasconnected = False
-            self.btn_pluginconnect.configure(state='active')
         self.feditor.enable()
+        self.btn_pluginconnect.configure(state='active')
         # self.threadexe.join()
     
     def simstart(self) -> None:
@@ -242,14 +244,22 @@ class App():
         # self.celine -= 1
         # self.feditor.updatebreakpoint(self.celine)
         print('simpluginconnect called!')
-        if (self.emu.connectplugin()):
-            self.btn_pluginconnect.configure(state='disabled')
-            messagebox.showinfo("PluginConnected", "Plugin was successfully attached!")
-            self.wasconnected = True
-            print('plugin connected')
+        if (not self.wasconnected):
+            if (self.emu.connectplugin()):
+                #self.btn_pluginconnect.configure(state='disabled')
+                messagebox.showinfo("PluginConnected", "Plugin was successfully attached!")
+                self.wasconnected = True
+                self.btn_pluginconnect.config(image = self.img_plugindisconnect)
+                print('plugin connected')
+            else:
+                messagebox.showerror("PluginError", "Plugin wasnot able to connect!")
+                print('plugin couldnot be connected')
         else:
-            messagebox.showerror("PluginError", "Plugin wasnot able to connect!")
-            print('plugin couldnot be connected')
+            self.emu.plugin.terminate()
+            self.btn_pluginconnect.config(image = self.img_pluginconnect)
+            self.wasconnected = False
+            print('plugin disconnected')
+
 
     def updateasmout(self, str="") -> None:
         self.fasmview.configure(state=NORMAL)

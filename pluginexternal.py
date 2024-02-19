@@ -36,7 +36,7 @@ class PluginExternal:
     
 
     def terminate(self):
-        self.sockserver.close()
+        self.sockplug.close()
 
     def recvsignal(self) -> list[bool, int, int, int]:
         try:
