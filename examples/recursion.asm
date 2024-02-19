@@ -33,4 +33,3 @@ fibo1:
 mov c, a
 pop psw
 ret
-

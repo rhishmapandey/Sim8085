@@ -555,7 +555,6 @@ class emu8085:
             self.setzeroflag(fval)
             self.setauxicarryflag(self.iscaseauxcarry(opval, self.A.value))
             self.setparityflag(fval)
-            print(fval)
             if (fval>0xff): self.setcarryflag(1)
             self.A.value = fval
             return
@@ -836,9 +835,31 @@ class emu8085:
             self.H.value = fval >> 8
             self.L.value = fval & 0xff
             return
-        #dda
+        #daa
         elif (ins == 0x27):
-            return
+            acf = self.getauxicarryflag()
+            cf = self.getcarryflag()
+            lval = (self.A.value & 0x0f)
+            hval = (self.A.value & 0xf0)
+            fval = 0
+            shouldupdate = 0
+            if (acf == 1 or (lval > 0x09)):
+                fval = self.A.value + 0x06
+                self.setauxicarryflag(self.iscaseauxcarry(0x06, self.A.value))
+                if (fval>0xff): self.setcarryflag(1)
+                self.A.value = fval
+                shouldupdate = 1
+            if (cf == 1 or (hval > 0x90)):
+                fval = self.A.value + 0x60
+                if (fval>0xff): self.setcarryflag(1)
+                self.A.value = fval
+                shouldupdate = 1
+            
+            if (shouldupdate):
+                self.setsignflag(fval)
+                self.setzeroflag(fval)
+                self.setparityflag(fval)
+                return
         #jc ds
         elif (ins == 0xDA):
             lval = self.memory[self.PC.value].value
