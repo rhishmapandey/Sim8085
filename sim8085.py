@@ -69,7 +69,6 @@ class App():
             data = json.load(configfile)
             self.fontcolor_ins = str(data['fontcolor_ins'])
             self.fontcolor_reg = str(data['fontcolor_reg'])
-            print('error')
             configfile.close()
         except:
             pass
