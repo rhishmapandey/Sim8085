@@ -123,6 +123,8 @@ class App():
         self.root.bind("<Control-n>", lambda e : self.commandnew())
         self.root.bind("<Control-o>", lambda e : self.commandopen())
         self.root.bind("<Control-s>", lambda e : self.commandsave())
+        
+        self.alignbreakpoints = False
 
     def dpiaware(self) -> None:
         import os
@@ -159,6 +161,10 @@ class App():
         while self.isopen():
             self.root.update()
             self.checkexecthread()
+            if self.alignbreakpoints:
+                print('aligning breakpoint post open!')
+                self.alignbreakpoints = False
+                self.feditor.twidget.delete('end-1l', 'end')
 
     def simstop(self) -> None:
         print('simstop called!')
@@ -354,9 +360,10 @@ class App():
             path = text_file.name
             try:
                 tfile = open(path, "r")
-                text = tfile.read()
+                text = tfile.read() +'\n'
                 self.feditor.twidget.delete('1.0', 'end')
                 self.feditor.twidget.insert(INSERT, text)
+                self.alignbreakpoints = True
                 tfile.close()
             except:
                 print("commandopen couldnot openfile :", path)
@@ -381,6 +388,7 @@ class App():
                 tfile = open(path, "w")
                 tfile.write(text[:(linecount-ee_count)])
                 tfile.close()
+                self.alignbreakpoints = True
             except:
                 print("commandsave couldnot saved :", path)
 

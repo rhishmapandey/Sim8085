@@ -91,6 +91,8 @@ if (not plugin.establishconnection()):
 plugin.run()
 #mainloop
 while (isopen(root)):
+    if ((not plugin.isconnected) and plugin.wasconnected):
+        break
     if (plugin.shouldupdate):
         update()
         plugin.shouldupdate = False

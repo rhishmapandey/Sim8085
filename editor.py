@@ -14,8 +14,9 @@ class Editor(Frame):
         self.twidget.tk.createcommand(self.twidget._w, self._proxy)
 
 
+        self.tarfsinpixs = 35
         self.img_breakpoint = PhotoImage(file="res/breakpoint.png")
-        self.img_none = PhotoImage(width=25, height=25)
+        self.img_none = PhotoImage(width=self.tarfsinpixs, height=self.tarfsinpixs)
         
         self.tcanvas = Canvas(self)
         self.tcanvas.place(relx=0, width=100, relheight=0.9, anchor='nw')
@@ -28,7 +29,6 @@ class Editor(Frame):
         self.xscrollbar.place(relx=0.6, rely=1, relwidth=0.4, anchor='sw')
         self.twidget.configure(yscrollcommand=self.textmousescroolcallback, xscrollcommand=self.xscrollbar.set) 
 
-        self.tarfsinpixs = 32
         tmpfs, tmpls = self.getfontsizeforpixels(self.fontstyle, self.tarfsinpixs)
         self.twidget.configure(font=(self.fontstyle, tmpfs))
         self.btnhei = tmpls
@@ -183,7 +183,7 @@ class Editor(Frame):
                         self.twindows.append(wc)
                     for i in range(len(self.wbtnbreakpoints), tclines):
                         frame = Frame(self.tcanvas)
-                        label = Label(frame, text=f'{i+1}', font=(self.fontstyle, 17), width=5, foreground='grey')
+                        label = Label(frame, text=f'{i+1}', font=(self.fontstyle, 16), width=5, foreground='grey')
                         button = BreakPoint(frame, image=self.img_none)
                         button.setlinenoandimg(i+1, self.img_breakpoint, self.activebreakpoints)
                         button.pack(side=RIGHT)
@@ -209,11 +209,13 @@ class Editor(Frame):
             f = font.Font(family=font_family, size=mid)
             linespace = f.metrics('linespace')
             if abs(linespace - target_linespace) <= tolerance:
+                print(f'fontsize {mid} for {linespace}px')
                 return mid, linespace
             elif linespace < target_linespace:
                 start = mid + 1
             else:
                 end = mid - 1
+        print(f'fontsize {start} for {linespace}px')
         return start, linespace
 
     def moveviewtoline(self, line:int):
