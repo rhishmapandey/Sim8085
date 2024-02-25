@@ -9,5 +9,6 @@ Installation:\
 3.) cd to the folder you just cloned and launch with python3 main.py or python main.py\
 \
 Screenshots:\
+![alt screenshot](https://github.com/rhishmapandey/Sim8085/blob/main/screenshots/Screenshot%202024-02-25%20214219.png)
 ![alt screenshot](https://github.com/rhishmapandey/Sim8085/blob/main/screenshots/Screenshot%202024-02-12%20211258.png)
 ![alt screenshot](https://github.com/rhishmapandey/Sim8085/blob/main/screenshots/Screenshot%202024-02-14%20144949.png)
