@@ -1,0 +1,10 @@
+{
+    "fontsize": 35,
+    "fontfamily": "Cascadia Code",
+    "fontcolor_default": "black",
+    "fontcolor_ins": "purple",
+    "fontcolor_reg": "blue",
+    "color_breakpoint": "red",
+    "fontcolor_comment": "brown",
+    "fontcolor_label": "green"
+}

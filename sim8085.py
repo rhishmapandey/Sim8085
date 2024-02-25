@@ -7,9 +7,14 @@ from regview import RegView
 from threading import Thread, Lock
 from tkinter import messagebox
 from tkinter import filedialog
+import json
+
 class App():
     def __init__(self, setting:str=None) -> None:
         self.fontstyle = 'Cascadia Code'
+
+
+
         self.root = Tk()
         self.root.title("Sim8085")
         self.dpiaware()
@@ -56,6 +61,20 @@ class App():
 
         self.feditor = Editor(self.rootframe)
         self.feditor.place(relx=1-0.5, y=self.btnc_size+20, relwidth=0.5, relheight=1, anchor='nw')
+        self.fontcolor_ins = 'purple'
+        self.fontcolor_reg = 'blue'
+        #try load editor settings
+        try:
+            configfile = open('settings.json')
+            data = json.load(configfile)
+            self.fontcolor_ins = str(data['fontcolor_ins'])
+            self.fontcolor_reg = str(data['fontcolor_reg'])
+            print('error')
+            configfile.close()
+        except:
+            pass
+        
+
         self.feditor.createtag(['MOV', 'MVI', 'STA', 'CALL', 'LXI', 'MVI', 'LDA', 'LDAX', 'STA', 'STAX', 'IN', 'OUT', 'LHLD', 'SHLD', 'XCHG',
                                 'ADD', 'ADI', 'SUB', 'SUI', 'INR', 'DCR', 'INX', 'DCX', 'ADC', 'ACI', 'SBB', 'SBI', 'DAD', 'DAA',
                                 'ANA', 'ANI', 'ORA', 'ORI', 'XRA', 'XRI', 'CMA', 'CMP', 'CPI', 'RLC', 'RAL', 'RRC', 'RAR', 'CMC', 'STC',
@@ -63,8 +82,8 @@ class App():
                                 'CALL', 'CC', 'CNC', 'CZ', 'CNZ', 'CP', 'CM', 'CPE', 'CPO',
                                 'RET', 'RC', 'RNC', 'RZ', 'RNZ', 'RP', 'RM', 'RPE', 'RPO',
                                 'RST',
-                                'PUSH', 'POP', 'XTHL', 'SPHL', 'PCHL', 'DI', 'EI', 'SIM', 'RIM', 'NOP', 'HLT'], 'ins', foreground='purple')
-        self.feditor.createtag(['A', 'PSW', 'B', 'C', 'D', 'E', 'H', 'L', 'SP', 'PC', 'M'], 'reg', foreground='blue')
+                                'PUSH', 'POP', 'XTHL', 'SPHL', 'PCHL', 'DI', 'EI', 'SIM', 'RIM', 'NOP', 'HLT'], 'ins', foreground=self.fontcolor_ins)
+        self.feditor.createtag(['A', 'PSW', 'B', 'C', 'D', 'E', 'H', 'L', 'SP', 'PC', 'M'], 'reg', foreground=self.fontcolor_reg)
         self.feditor.twidget.insert(INSERT, 'hlt')
 
         self.fmemview = MemoryView(self.rootframe)

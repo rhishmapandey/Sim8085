@@ -1,20 +1,41 @@
 from tkinter import *
 from tkinter import font
 from breakpoint import BreakPoint
+import json
+
 class Editor(Frame):
     def __init__(self, master=None, **kw) -> None:
         Frame.__init__(self, master, kw)
         # set current font
         self.fontstyle = "Cascadia Code"
+
+        self.tarfsinpixs = 35
+        self.color_breakpoint = 'red'
+        self.fontcolor_comment = 'brown'
+        self.fontcolor_label = 'green'
+        self.fontcolor_default = 'black'
+
+        #try load editor settings
+        try:
+            configfile = open('settings.json')
+            data = json.load(configfile)
+            self.fontstyle = str(data['fontfamily'])
+            self.tarfsinpixs = int(data['fontsize'])
+            self.fontcolor_default = str(data['fontcolor_default'])
+            self.fontcolor_comment = str(data['fontcolor_comment'])
+            self.fontcolor_label = str(data['fontcolor_label'])
+            self.color_breakpoint = str(data['color_breakpoint'])
+            configfile.close()
+        except:
+            pass
+
         # create a proxy for the underlying widget
-        self.twidget = Text(self, kw, wrap='none', undo=TRUE)
+        self.twidget = Text(self, kw, wrap='none', undo=TRUE, foreground=self.fontcolor_default)
         self.twidget.place(x=100, relwidth=0.8, relheight=0.9, anchor='nw')
         self.twidget._orig = self.twidget._w + "_orig"
         self.twidget.tk.call("rename", self.twidget._w, self.twidget._orig)
         self.twidget.tk.createcommand(self.twidget._w, self._proxy)
 
-
-        self.tarfsinpixs = 35
         self.img_breakpoint = PhotoImage(file="res/breakpoint.png")
         self.img_none = PhotoImage(width=self.tarfsinpixs, height=self.tarfsinpixs)
         
@@ -36,9 +57,9 @@ class Editor(Frame):
         self.twidget.bind('<<TextModified>>', self.textmodifiedcallback)
         self.twidget.bind('<Tab>', self.tab)
         self.tlines = self.twidget.get('1.0', 'end').split('\n')
-        self.twidget.tag_configure("breakpoint", background='red')
-        self.twidget.tag_configure("comment", foreground="brown")
-        self.twidget.tag_configure("label", foreground="green")
+        self.twidget.tag_configure("breakpoint", background=self.color_breakpoint)
+        self.twidget.tag_configure("comment", foreground=self.fontcolor_comment)
+        self.twidget.tag_configure("label", foreground=self.fontcolor_label)
 
         self.cbtnbreakpoints = 0
     
