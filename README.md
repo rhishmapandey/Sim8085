@@ -7,6 +7,7 @@ Installation:\
 1.) clone the repo from the main branch to your desired location\
 2.) make sure you have installed python3 along with tkinter as a dependency (on windows tkitner is packaged with python3)\
 3.) cd to the folder you just cloned and launch with python3 main.py or python main.py\
+4.) install cascadia code font\
 \
 Screenshots:\
 ![alt screenshot](https://github.com/rhishmapandey/Sim8085/blob/main/screenshots/Screenshot%202024-02-25%20214219.png)
