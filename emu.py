@@ -48,6 +48,8 @@ class LexTag(Enum):
     DSTRING  = 5
     SCOMMA   = 6
     SCOLON   = 7
+    DDBYTE   = 8
+    DDSHORT  = 9
         
 #please for the sake of god remove comments and unnessary junk adios
 def misc_getele(line:str) -> list:
@@ -1421,7 +1423,13 @@ def checkhex(v:str):
         return True
     except:
         return False
-    
+
+def checkdec(v:str):
+    try:
+        return (int(v) >= 0 and int(v) <= 0xffff)
+    except:
+        return False
+
 def lexline(line:str):
     l = line.upper()
     if l.find(';') != -1:
@@ -1444,8 +1452,13 @@ def lexline(line:str):
         elif checkhex(l):
             if (len(l) == 3):
                 lexana.append(LexTag.DBYTE)
-            if (len(l) == 5):
+            else:
                 lexana.append(LexTag.DSHORT)
+        elif checkdec(l):
+            if (int(l) <= 0xff):
+                lexana.append(LexTag.DDBYTE)
+            else:
+                lexana.append(LexTag.DDSHORT)
         else: 
             lexana.append(LexTag.DSTRING)
     return ele, lexana
@@ -1501,7 +1514,7 @@ class assembler():
     
     def miscissinglebarg(self, lexa, off) -> list[bool, str]:
         if (len(lexa) == (off+1)+1):
-            if lexa[off+1] == LexTag.DBYTE:
+            if lexa[off+1] == LexTag.DBYTE or lexa[off+1] == LexTag.DDBYTE:
                 return True, ''
             else : 
                 return False, 'invaid arg, was expecting a byte'
@@ -1513,7 +1526,7 @@ class assembler():
 
     def miscissingledarg(self, lexa, off) -> list[bool, str]:
         if (len(lexa) == (off+1)+1):
-            if lexa[off+1] == LexTag.DSHORT:
+            if lexa[off+1] == LexTag.DSHORT or lexa[off+1] == LexTag.DDSHORT or lexa[off+1] == LexTag.DDBYTE:
                 return True, ''
             else : 
                 return False, 'invaid arg, was expecting a double'
@@ -1652,7 +1665,10 @@ class assembler():
                                 if (b == False):
                                     return False, m
                                 opcodes.append(_inc_sbarg[ins])
-                                opcodes.append(int(sa[inso+1][:-1], 16))
+                                if (lexa[inso+1] == LexTag.DBYTE):
+                                    opcodes.append(int(sa[inso+1][:-1], 16))
+                                else:
+                                    opcodes.append(int(sa[inso+1]))
                                 oplen = 2
                         #type single reg with offset relation t1 arg
                         elif ins in list(_inc_srt1arg):
@@ -1711,34 +1727,54 @@ class assembler():
                                 b, m = self.miscissingledarg(lexa, inso)
                                 if (b == False):
                                     return False, m
-                                tm = int(sa[inso+1][:-1], 16)
-                                adu = tm >> 8
-                                adl = tm & 0x00ff
                                 opcodes.append(_inc_sdarg[ins])
-                                opcodes.append(adl)
-                                opcodes.append(adu)
+                                if (lexa[inso+1] == LexTag.DSHORT):
+                                    tm = int(sa[inso+1][:-1], 16)
+                                    adu = tm >> 8
+                                    adl = tm & 0x00ff
+                                    opcodes.append(adl)
+                                    opcodes.append(adu)
+                                else:
+                                    tm = int(sa[inso+1])
+                                    adu = tm >> 8
+                                    adl = tm & 0x00ff
+                                    opcodes.append(adl)
+                                    opcodes.append(adu)
                                 oplen = 3
                         #some distinct hardcoded
                         elif ins == 'LXI':
                             if (len(sa) != (inso+1)+3):
                                 return False, 'not enough args'
-                            if (sa[inso+1] in _inc_srpt3regs and lexa[inso+2] == LexTag.SCOMMA and lexa[inso+3] == LexTag.DSHORT):
-                                tm = int(sa[inso+3][:-1], 16)
-                                adl = tm >> 8
-                                adu = tm & 0x00ff
-                                opcodes.append(self.miscopcoderpt3off(0x01, sa[inso+1], _inc_srpt3regs, 16))
-                                opcodes.append(adu)
-                                opcodes.append(adl)
+                            if (sa[inso+1] in _inc_srpt3regs and lexa[inso+2] == LexTag.SCOMMA and (lexa[inso+3] in [LexTag.DSHORT, LexTag.DDSHORT, LexTag.DDBYTE])):
+                                if (lexa[inso+3] == LexTag.DSHORT):
+                                    tm = int(sa[inso+3][:-1], 16)
+                                    adl = tm >> 8
+                                    adu = tm & 0x00ff
+                                    opcodes.append(self.miscopcoderpt3off(0x01, sa[inso+1], _inc_srpt3regs, 16))
+                                    opcodes.append(adu)
+                                    opcodes.append(adl)
+                                else:
+                                    tm = int(sa[inso+3])
+                                    adl = tm >> 8
+                                    adu = tm & 0x00ff
+                                    opcodes.append(self.miscopcoderpt3off(0x01, sa[inso+1], _inc_srpt3regs, 16))
+                                    opcodes.append(adu)
+                                    opcodes.append(adl)
                                 oplen = 3
                             else:
                                 return False, 'invalid args'
                         elif ins == 'MVI':
                             if (len(sa) != (inso+1)+3):
                                 return False, 'not enough args'
-                            if (lexa[inso+1] == LexTag.REG and lexa[inso+2] == LexTag.SCOMMA and lexa[inso+3] == LexTag.DBYTE):
-                                d = int(sa[inso+3][:-1], 16)
-                                opcodes.append(self.miscopcodertoff(0x06, sa[inso+1], 8))
-                                opcodes.append(d)
+                            if (lexa[inso+1] == LexTag.REG and lexa[inso+2] == LexTag.SCOMMA and (lexa[inso+3] in [LexTag.DBYTE, LexTag.DDBYTE])):
+                                if (lexa[inso+3] == LexTag.DBYTE):
+                                    d = int(sa[inso+3][:-1], 16)
+                                    opcodes.append(self.miscopcodertoff(0x06, sa[inso+1], 8))
+                                    opcodes.append(d)
+                                else:
+                                    d = int(sa[inso+3])
+                                    opcodes.append(self.miscopcodertoff(0x06, sa[inso+1], 8))
+                                    opcodes.append(d)
                                 oplen = 2
                             else:
                                 return False, 'invalid args'

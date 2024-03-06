@@ -394,7 +394,7 @@ class App():
             try:
                 if (path[-4:] != '.asm'):
                     path = f'{path}.asm'
-                text = self.feditor.twidget.get('1.0', 'end')
+                text = self.feditor.twidget.get('1.0', 'end')+'\n'
                 #"pretty" save
                 ee_count = 0
                 linecount = len(text)
@@ -406,7 +406,6 @@ class App():
                 tfile = open(path, "w")
                 tfile.write(text[:(linecount-ee_count)])
                 tfile.close()
-                self.alignbreakpoints = True
             except:
                 print("commandsave couldnot saved :", path)
 
