@@ -298,7 +298,7 @@ class App():
         try:
             state , err = self.asmer.assemble(self.feditor.getlines())
         except:
-            state, err = False, "couldnot assemble doesit fit into memory?"
+            state, err = False, "couldnot assemble does it fit into memory?"
         if state == True:
             self.asmer.generateasmdump()
             self.fasmview.configure(foreground='brown')
