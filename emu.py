@@ -38,6 +38,8 @@ _inc_srpt4regs = ['B', 'D', 'H', 'PSW']
 _inc_srpt5arg = {'LDAX' : 0x0A, 'STAX' : 0x02}
 _inc_srpt5regs = ['B', 'D']
 
+_asm_dirs = ['ORG', 'DB', 'DS']
+
 
 class LexTag(Enum):
     REG      = 0
@@ -50,6 +52,7 @@ class LexTag(Enum):
     SCOLON   = 7
     DDBYTE   = 8
     DDSHORT  = 9
+    ASMDIR = 10
         
 #please for the sake of god remove comments and unnessary junk adios
 def misc_getele(line:str) -> list:
@@ -130,7 +133,12 @@ class emu8085:
     def getcurrentline(self) -> int:
         if self.haulted == False:
             try:
-                return self.dbglinecache[self.PC.value - self.ploadaddress.value]
+                line = self.dbglinecache[self.PC.value]
+                if (line == 0):
+                    self.wasexecerr = True
+                    self.haulted = True
+                    return 0
+                return line
             except:
                 print("exeception encountered while getting current binary line program ran out of scope!")
                 self.wasexecerr = True
@@ -142,7 +150,7 @@ class emu8085:
     def loadbinary(self, binary) -> None:
         boff = 0
         for bbyte in binary:
-            self.memory[self.ploadaddress.value+boff].value = bbyte
+            self.memory[boff].value = bbyte
             boff += 1
     
     def pop(self) -> int:
@@ -1459,6 +1467,8 @@ def lexline(line:str):
                 lexana.append(LexTag.DDBYTE)
             else:
                 lexana.append(LexTag.DDSHORT)
+        elif (l in _asm_dirs):
+            lexana.append(LexTag.ASMDIR)
         else: 
             lexana.append(LexTag.DSTRING)
     return ele, lexana
@@ -1471,12 +1481,17 @@ class assembler():
         self.dbgtoresolvelines = {}
         self.labeloff = {}
         self.pmemory = []
+        self.dbglinecache = []
+
+        for i in range(0xffff):
+            self.pmemory.append(0)
+            self.dbglinecache.append(0)
 
         self.plsize = []
+        self.poffset = []
 
         self.dbugasm = ""
         self.dclines = []
-        self.dbglinecache = []
 
     def reset(self) -> None:
         self.toresolvelabels = {}
@@ -1484,14 +1499,17 @@ class assembler():
         self.cprogmemoff = 0x0000
         self.dbgtoresolvelines = {}
         self.labeloff = {}
-        self.pmemory = []
+
+        for i in range(0xffff):
+            self.pmemory[i] = 0
+            self.dbglinecache[i] = 0
 
         self.plsize = []
+        self.poffset = []
 
         self.dbugasm = ""
         self.dclines = []
         
-        self.dbglinecache = []
     
     def addtooresolvelabel(self, label:str, offset:int, cline:int=None) -> None:
         if not label in self.toresolvelabels:
@@ -1612,7 +1630,7 @@ class assembler():
         for label in list(self.labeloff):
             if label in list(self.toresolvelabels):
                 #print(f'resolving label \'{label}\'')
-                memoff  = self.labeloff[label] + self.ploadoff 
+                memoff  = self.labeloff[label]
                 adl = memoff >> 8
                 adu = memoff & 0x00ff
                 for toupoff in self.toresolvelabels[label]:
@@ -1622,6 +1640,45 @@ class assembler():
         if (self.toresolvelabels != {}):
             return False, f'error unresolved labels {list(self.toresolvelabels)}'
         return True, ''
+    
+    def getdbarray(self, lexs, strs):
+        print(lexs, strs)
+        vals = []
+        exp_comma = False
+        off = 0
+        for lex in lexs:
+            if (exp_comma):
+                if (lex != LexTag.SCOMMA):
+                    return (False, "was expecting a comma", [])
+            elif(lex != LexTag.DBYTE and lex != LexTag.DDBYTE):
+                return (False, "was expecting bytes invalid args", [])
+            if (lex == LexTag.DBYTE):
+                vals.append(int(strs[off][:-1], 16))
+            if (lex == LexTag.DDBYTE):
+                vals.append(int(strs[off]))
+            exp_comma = not exp_comma
+            off += 1
+        return True, "", vals
+    
+    def getdsarray(self, lexs, strs):
+        print(lexs, strs)
+        vals = []
+        exp_comma = False
+        off = 0
+        for lex in lexs:
+            if (exp_comma):
+                if (lex != LexTag.SCOMMA):
+                    return (False, "was expecting a comma", [])
+            elif(lex != LexTag.DSHORT and lex != LexTag.DDSHORT):
+                return (False, "was expecting shorts invalid args", [])
+            if (lex == LexTag.DSHORT):
+                vals.append(int(strs[off][:-1], 16))
+            if (lex == LexTag.DDSHORT):
+                vals.append(int(strs[off]))
+            exp_comma = not exp_comma
+            off += 1
+        return True, "", vals
+    
     def assemble(self, lines) -> list[bool, str]:
         self.dclines = lines
         for line in lines:
@@ -1631,7 +1688,31 @@ class assembler():
             #instruction offset incase of label defined before instruction 
             inso = 0
             if sa != []:
-                if LexTag.SCOLON in lexa:
+                if LexTag.ASMDIR in lexa:
+                    if (lexa[0] != LexTag.ASMDIR):
+                        return False, "was expecting directive first"
+                    elif (sa[0] == "ORG"):
+                        if (len(lexa) != 2 or lexa[1] != LexTag.DSHORT):
+                            return False, "invalid args"
+                        self.ploadoff = int(sa[inso+1][:-1], 16)
+                        self.cprogmemoff = 0
+                    elif(sa[0] == "DB"):
+                        status, msg, vals = self.getdbarray(lexa[1:], sa[1:])
+                        if (status == False):
+                            return status, msg
+                        for val in vals:
+                            opcodes.append(val)
+                            oplen += 1
+                    elif(sa[0] == "DS"):
+                        status, msg, vals = self.getdsarray(lexa[1:], sa[1:])
+                        if (status == False):
+                            return status, msg
+                        for val in vals:
+                            opcodes.append(val&0xff)
+                            opcodes.append((val&0xff00)>>8)
+                            oplen += 2
+                    inso = -1
+                elif LexTag.SCOLON in lexa:
                     scount = 0
                     for lex in lexa:
                         if (lex == LexTag.SCOLON):
@@ -1639,7 +1720,7 @@ class assembler():
                     if (scount > 1):
                         return False, "was expecting single colon"
                     if lexa[0] == LexTag.DSTRING and lexa[1] == LexTag.SCOLON:
-                        if(self.addlabeloff(sa[0], self.cprogmemoff) == False):
+                        if(self.addlabeloff(sa[0], self.cprogmemoff+self.ploadoff) == False):
                             return False, f'label {sa[0]} was already defined'
                         if (len(lexa) == 2):
                             inso = -1
@@ -1720,7 +1801,7 @@ class assembler():
                                 else:
                                     opcodes.append(0xCA)
                                     opcodes.append(0xCA)
-                                    self.addtooresolvelabel(sa[inso+1], self.cprogmemoff+1)
+                                    self.addtooresolvelabel(sa[inso+1], self.ploadoff + self.cprogmemoff + 1)
                                 oplen = 3
                         #type single double arg
                         elif ins in list(_inc_sdarg):
@@ -1789,30 +1870,28 @@ class assembler():
                                 return False, 'invalid args'
                         else:
                             return False, 'opcode locate error'
+            self.poffset.append(self.ploadoff + self.cprogmemoff)
             self.plsize.append(oplen)
             for opcode in opcodes:
-                self.pmemory.append(opcode)
-            self.cprogmemoff += oplen
+                self.pmemory[self.ploadoff + self.cprogmemoff] = opcode
+                self.cprogmemoff += 1
         bl, ml = self.resolvelabels()
         if (bl == False):
             return False, ml
         return True, "success!"
     
     def generateasmdump(self):
-        memoff = self.ploadoff
-        poff = 0
         loff = 0
         for lc in self.plsize:
-            self.dbugasm += f'{"%04x"%(memoff+poff)}      '.upper()
+            self.dbugasm += f'{"%04x"%(self.poffset[loff])}      '.upper()
             lsize = lc
             toline = ''
             for i in range(lsize):
-                toline += (f'{"%02x"%self.pmemory[poff+i]} '.upper())
-                self.dbglinecache.append(loff+1)
+                toline += (f'{"%02x"%self.pmemory[self.poffset[loff] + i]} '.upper())
+                self.dbglinecache[self.poffset[loff] + i] = loff + 1
             self.dbugasm += "{:<10}".format(toline)
             self.dbugasm += f'   <=> <{lsize} bytes> \'{self.dclines[loff]}\'\n'
             loff += 1
-            poff += lsize
 
 # a = assembler()
 # c, d = a.assemble([';simple program in one shot!', 'Ree:MOV A, A', 'INR M', 'ACI 00H', 'ADI 01H', 'CALL L2', 'CC L2', 'ADC H', 'L2:', 'LDA 4000H','HLT'])

@@ -13,8 +13,6 @@ class App():
     def __init__(self, setting:str=None) -> None:
         self.fontstyle = 'Cascadia Code'
 
-
-
         self.root = Tk()
         self.root.title("Sim8085")
         self.dpiaware()
@@ -63,12 +61,14 @@ class App():
         self.feditor.place(relx=1-0.5, y=self.btnc_size+20, relwidth=0.5, relheight=1, anchor='nw')
         self.fontcolor_ins = 'purple'
         self.fontcolor_reg = 'blue'
+        self.fontcolor_dir = 'darkgreen'
         #try load editor settings
         try:
             configfile = open('settings.json')
             data = json.load(configfile)
             self.fontcolor_ins = str(data['fontcolor_ins'])
             self.fontcolor_reg = str(data['fontcolor_reg'])
+            self.fontcolor_dir = str(data['fontcolor_dir'])
             configfile.close()
         except:
             pass
@@ -83,6 +83,7 @@ class App():
                                 'RST',
                                 'PUSH', 'POP', 'XTHL', 'SPHL', 'PCHL', 'DI', 'EI', 'SIM', 'RIM', 'NOP', 'HLT'], 'ins', foreground=self.fontcolor_ins)
         self.feditor.createtag(['A', 'PSW', 'B', 'C', 'D', 'E', 'H', 'L', 'SP', 'PC', 'M'], 'reg', foreground=self.fontcolor_reg)
+        self.feditor.createtag(['ORG', 'DB', 'DS'], 'dir', foreground=self.fontcolor_dir)
         self.feditor.twidget.insert(INSERT, 'hlt')
 
         self.fmemview = MemoryView(self.rootframe)

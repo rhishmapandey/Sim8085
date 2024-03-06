@@ -1,10 +1,11 @@
 {
     "fontsize": 35,
     "fontfamily": "Cascadia Code",
-    "fontcolor_default": "#b95cad",
+    "fontcolor_default": "#588157",
     "fontcolor_ins": "#7209b7",
     "fontcolor_reg": "#574ae2",
+    "fontcolor_dir": "#5e60ce",
     "color_breakpoint": "#d9c5b2",
     "fontcolor_comment": "#d95d39",
-    "fontcolor_label": "#38a3a5"
+    "fontcolor_label": "#0077b6"
 }
