@@ -294,10 +294,13 @@ class App():
 
     def assemblecode(self) -> list[bool, str]:
         self.asmer.reset()
-        state , err = self.asmer.assemble(self.feditor.getlines())
-        print(state, err)
-        self.asmer.generateasmdump()
+        state, err = False, "not assembling?"
+        try:
+            state , err = self.asmer.assemble(self.feditor.getlines())
+        except:
+            state, err = False, "couldnot assemble doesit fit into memory?"
         if state == True:
+            self.asmer.generateasmdump()
             self.fasmview.configure(foreground='brown')
             self.updateasmout(self.asmer.dbugasm)
         else:
