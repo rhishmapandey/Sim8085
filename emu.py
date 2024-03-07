@@ -1482,10 +1482,12 @@ class assembler():
         self.labeloff = {}
         self.pmemory = []
         self.dbglinecache = []
+        self.writtenaddresses = []
 
         for i in range(0xffff):
             self.pmemory.append(0)
             self.dbglinecache.append(0)
+            self.writtenaddresses.append(0)
 
         self.plsize = []
         self.poffset = []
@@ -1503,6 +1505,7 @@ class assembler():
         for i in range(0xffff):
             self.pmemory[i] = 0
             self.dbglinecache[i] = 0
+            self.writtenaddresses[i] = 0
 
         self.plsize = []
         self.poffset = []
@@ -1874,6 +1877,9 @@ class assembler():
             self.plsize.append(oplen)
             for opcode in opcodes:
                 self.pmemory[self.ploadoff + self.cprogmemoff] = opcode
+                if (self.writtenaddresses[self.ploadoff + self.cprogmemoff] != 0):
+                    return False, 'memory override on same address'
+                self.writtenaddresses[self.ploadoff + self.cprogmemoff] = 1
                 self.cprogmemoff += 1
         bl, ml = self.resolvelabels()
         if (bl == False):
