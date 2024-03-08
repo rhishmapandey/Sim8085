@@ -1645,7 +1645,7 @@ class assembler():
         return True, ''
     
     def getdbarray(self, lexs, strs):
-        print(lexs, strs)
+        #print(lexs, strs)
         vals = []
         exp_comma = False
         off = 0
@@ -1664,7 +1664,7 @@ class assembler():
         return True, "", vals
     
     def getdsarray(self, lexs, strs):
-        print(lexs, strs)
+        #print(lexs, strs)
         vals = []
         exp_comma = False
         off = 0
