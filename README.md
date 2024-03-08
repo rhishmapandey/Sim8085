@@ -16,6 +16,4 @@ Features:\
 4.) Customizable editor customizable with json.
 5.) Useful assembler directives (org, db, ds).
 Screenshots:\
-![alt screenshot](https://github.com/rhishmapandey/Sim8085/blob/main/screenshots/Screenshot%202024-02-25%20214219.png)
-![alt screenshot](https://github.com/rhishmapandey/Sim8085/blob/main/screenshots/Screenshot%202024-02-12%20211258.png)
-![alt screenshot](https://github.com/rhishmapandey/Sim8085/blob/main/screenshots/Screenshot%202024-02-14%20144949.png)
+![Sim8085 ScreenShot](https://github.com/rhishmapandey/Sim8085/blob/main/screenshots/Sim8085.png)
