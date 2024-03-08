@@ -53,6 +53,8 @@ class Editor(Frame):
         tmpfs, tmpls = self.getfontsizeforpixels(self.fontstyle, self.tarfsinpixs)
         self.twidget.configure(font=(self.fontstyle, tmpfs))
         self.btnhei = tmpls
+        tmpfslc, tmplslc = self.getfontsizeforpixels(self.fontstyle, 25)
+        self.lcfs = tmpfslc
         self.twidget.tags = []
         self.twidget.bind('<<TextModified>>', self.textmodifiedcallback)
         self.twidget.bind('<Tab>', self.tab)
@@ -204,7 +206,7 @@ class Editor(Frame):
                         self.twindows.append(wc)
                     for i in range(len(self.wbtnbreakpoints), tclines):
                         frame = Frame(self.tcanvas)
-                        label = Label(frame, text=f'{i+1}', font=(self.fontstyle, 16), width=5, foreground='grey')
+                        label = Label(frame, text=f'{i+1}', font=(self.fontstyle, self.lcfs), width=5, foreground='grey')
                         button = BreakPoint(frame, image=self.img_none)
                         button.setlinenoandimg(i+1, self.img_breakpoint, self.activebreakpoints)
                         button.pack(side=RIGHT)
