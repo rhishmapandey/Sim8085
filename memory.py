@@ -4,7 +4,7 @@ from tooltip import CreateToolTip
 class MemoryView(Frame):
     def __init__(self, master=None, **kw) -> None:
         Frame.__init__(self, master, kw)
-        self.fontstyle = 'Cascadia Code'
+        self.fontstyle = 'Comic Mono'
 
         self.fmemcells = Frame(self)
         self.fmemcells.place(relx=0.1, rely=1.0/17, relwidth=0.9, relheight=1-1.0/17, anchor='nw')

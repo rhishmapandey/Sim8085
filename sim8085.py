@@ -11,7 +11,7 @@ import json
 
 class App():
     def __init__(self, setting:str=None) -> None:
-        self.fontstyle = 'Cascadia Code'
+        self.fontstyle = 'Comic Mono'
 
         self.root = Tk()
         self.root.title("Sim8085")

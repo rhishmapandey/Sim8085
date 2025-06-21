@@ -3,7 +3,7 @@ from tkinter import *
 class RegView(Frame):
     def __init__(self, master=None, **kw) -> None:
         Frame.__init__(self, master, kw)
-        self.fontstyle = 'Cascadia Code'
+        self.fontstyle = 'Comic Mono'
         hoff = 1.0/6
         self.emulator = None
         self.btna = Button(self, text= 'A:00', font=(self.fontstyle, 15))

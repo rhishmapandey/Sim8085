@@ -2,7 +2,7 @@ from tkinter import *
 
 class ToolTip(object):
     def __init__(self, widget, spawnx, spawny):
-        self.fontstyle = 'Cascadia Code'
+        self.fontstyle = 'Comic Mono'
         self.spawnx = spawnx
         self.spawny = spawny
         self.widget = widget

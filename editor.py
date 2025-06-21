@@ -7,7 +7,7 @@ class Editor(Frame):
     def __init__(self, master=None, **kw) -> None:
         Frame.__init__(self, master, kw)
         # set current font
-        self.fontstyle = "Cascadia Code"
+        self.fontstyle = "Comic Mono"
 
         self.tarfsinpixs = 35
         self.color_breakpoint = 'red'
